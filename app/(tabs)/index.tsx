@@ -14,6 +14,7 @@ import { FishingMap } from '@/components/map/FishingMap';
 import { MarineConditionsCard } from '@/components/marine/MarineConditionsCard';
 import { MarineTimeline } from '@/components/marine/MarineTimeline';
 import { FishingMethodsCard } from '@/components/marine/FishingMethodsCard';
+import { FishActivityMeter } from '@/components/marine/FishActivityMeter';
 import { SEA_LEVEL_COLORS, translateSeaLevel, translateSuitability } from '@/components/marine/marineUi';
 import { useMarineForecast } from '@/features/marine/useMarineForecast';
 import { getNearbySpots, getSpotById } from '@/features/spots/spotService';
@@ -293,6 +294,7 @@ export default function HomeScreen() {
                   onRefresh={() => void marine.refresh()}
                   refreshing={marine.refreshing}
                 />
+                <FishActivityMeter conditions={marine.data.current} />
                 <FishingMethodsCard conditions={marine.data.current} />
                 <MarineTimeline hourly={marine.data.hourly} />
               </View>

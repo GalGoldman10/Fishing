@@ -505,6 +505,29 @@
       "high": "high fish activity expected",
       "medium": "moderate fish activity",
       "low": "lower fish activity"
+    },
+    "activityTitle": "Fish activity meter",
+    "activityLegendToggle": "How is this calculated?",
+    "activityDisclaimer": "Estimate based on sea conditions, barometer, moon and time of day — a recommendation only, not a promise.",
+    "activityTiers": {
+      "slow": {
+        "range": "10%–40%",
+        "name": "Breathe the sea",
+        "hint": "Fish are on strike. Go for the soul — the sea heals even without a catch.",
+        "description": "Goal: peace of mind. Gear: keep it simple."
+      },
+      "challenging": {
+        "range": "41%–70%",
+        "name": "Pro anglers' hour",
+        "hint": "There are fish, but you'll have to work for them.",
+        "description": "Goal: a challenge. Gear: quality, fresh bait."
+      },
+      "hot": {
+        "range": "71%–100%",
+        "name": "Fire on the water",
+        "hint": "All the stars aligned — real action expected!",
+        "description": "Goal: action. Gear: everything works!"
+      }
     }
   },
   "marineLoading": {
