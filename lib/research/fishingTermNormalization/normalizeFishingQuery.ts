@@ -4,7 +4,9 @@ import {
   cleanFishingQueryText,
   isStopWord,
   normalizeForMatching,
+  stripHebrewPrefixes,
   tokenizeFishingQuery,
+  tokenMatchVariants,
 } from './textUtils';
 import type {
   DetectedTermMatch,
@@ -77,6 +79,29 @@ function findExactMatches(cleanedQuestion: string): DetectedTermMatch[] {
     }
   }
 
+  // Prefixed Hebrew tokens: בזירזור, לדיג, etc.
+  for (const token of tokenizeFishingQuery(cleanedQuestion)) {
+    const stripped = stripHebrewPrefixes(token);
+    if (stripped === token) continue;
+
+    for (const row of PHRASE_ROWS) {
+      if (covered.has(row.normalizedAlias)) continue;
+      if (normalizeForMatching(stripped) !== row.normalizedAlias) continue;
+
+      matches.push({
+        matchedText: token,
+        matchedAlias: row.alias,
+        canonical: row.entry.canonical,
+        score: 1,
+        confidence: 'high',
+        wasFuzzy: false,
+        entry: row.entry,
+      });
+      covered.add(row.normalizedAlias);
+      break;
+    }
+  }
+
   return matches;
 }
 
@@ -121,12 +146,18 @@ function findFuzzyMatches(cleanedQuestion: string, exactMatches: DetectedTermMat
   const fuzzyMatches: DetectedTermMatch[] = [];
 
   for (const token of tokenizeFishingQuery(cleanedQuestion)) {
-    const normalizedToken = normalizeForMatching(token);
-    if (exactNormalized.has(normalizedToken)) continue;
+    for (const variant of tokenMatchVariants(token)) {
+      const normalizedToken = normalizeForMatching(variant);
+      if (exactNormalized.has(normalizedToken)) continue;
 
-    const fuzzy = findFuzzyTokenMatch(token);
-    if (fuzzy && fuzzy.confidence !== 'low') {
-      fuzzyMatches.push(fuzzy);
+      const fuzzy = findFuzzyTokenMatch(variant);
+      if (fuzzy && fuzzy.confidence !== 'low') {
+        fuzzyMatches.push({
+          ...fuzzy,
+          matchedText: token,
+        });
+        break;
+      }
     }
   }
 

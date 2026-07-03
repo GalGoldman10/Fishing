@@ -2,18 +2,22 @@
  * Refuses non-fishing questions with a polite localized message.
  */
 
+import { normalizeFishingQuery } from '@/lib/research/fishingTermNormalization';
+
 const FISHING_KEYWORDS_EN = [
   'fish', 'fishing', 'angler', 'angling', 'bait', 'lure', 'rod', 'reel', 'tackle',
   'shore', 'surf', 'pier', 'marina', 'harbor', 'harbour', 'catch', 'species',
   'tide', 'wave', 'kayak', 'boat', 'freshwater', 'saltwater', 'hook', 'sinker',
   'float', 'jig', 'rig', 'knot', 'seabass', 'bream', 'trout', 'bass', 'regulation',
   'license', 'licence', 'spearfishing', 'fly fishing', 'cast', 'trolling',
+  'spinning', 'jarjour', 'zirzur',
 ];
 
 const FISHING_KEYWORDS_HE = [
-  'דיג', 'דייג', 'דג', 'דגים', 'חכה', 'פיתיון', 'חוף', 'מזח', 'נמל', 'לוכד',
-  'ציוד', 'גל', 'גאות', 'שפל', 'סירה', 'קיאק', 'קרס', 'משקולת', 'פלואט',
-  'רישיון', 'תקנה', 'לוקוס', 'דניס', 'מושט', 'רוח', 'ים', 'אגם', 'נהר',
+  'דיג', 'לדוג', 'דייג', 'דג', 'דגים', 'חכה', 'פיתיון', 'פתיון', 'דמוי', 'דימוי',
+  'חוף', 'מזח', 'נמל', 'לוכד', 'ציוד', 'גל', 'גאות', 'שפל', 'סירה', 'קיאק', 'קרס',
+  'משקולת', 'פלואט', 'רישיון', 'תקנה', 'לוקוס', 'דניס', 'מושט', 'רוח', 'ים', 'אגם', 'נהר',
+  'זירזור', 'זרזור', 'גרגור', 'גירגור', 'גיג', 'ג\'יג', 'ריג', 'סיליקון',
 ];
 
 const FISHING_WEATHER_PATTERNS_EN = [
@@ -31,6 +35,9 @@ const FISHING_WEATHER_PATTERNS_HE = [
   /מחר לדיג/,
   /רוח.*(חוף|דיג|סלע)/,
   /גלים.*דיג/,
+  /לדוג/,
+  /(ב|ל)?זיר?זור/,
+  /(ב|ל)?גר?גור/,
 ];
 
 const BLOCKED_TOPICS_EN = [
@@ -38,19 +45,28 @@ const BLOCKED_TOPICS_EN = [
   /cryptocurrency/i, /bitcoin/i, /stock market/i, /gambling/i,
 ];
 
+function textMatchesFishingKeywords(question: string, language: 'en' | 'he'): boolean {
+  const text = question.toLowerCase();
+  const keywords = language === 'he' ? FISHING_KEYWORDS_HE : FISHING_KEYWORDS_EN;
+  return keywords.some((kw) =>
+    language === 'he' ? question.includes(kw) : text.includes(kw.toLowerCase()),
+  );
+}
+
 export function isFishingQuestion(question: string, language: 'en' | 'he'): boolean {
   const text = question.toLowerCase();
   if (text.includes('phishing')) return false;
 
-  const keywords = language === 'he' ? FISHING_KEYWORDS_HE : FISHING_KEYWORDS_EN;
-  const hasFishingKeyword = keywords.some((kw) =>
-    language === 'he' ? question.includes(kw) : text.includes(kw.toLowerCase()),
-  );
-
-  if (hasFishingKeyword) return true;
+  if (textMatchesFishingKeywords(question, language)) return true;
 
   const weatherPatterns = language === 'he' ? FISHING_WEATHER_PATTERNS_HE : FISHING_WEATHER_PATTERNS_EN;
   if (weatherPatterns.some((p) => p.test(question))) return true;
+
+  // Recognize slang/typos via the term normalization layer (ignore weak false positives).
+  const norm = normalizeFishingQuery(question, language);
+  if (norm.matches.some((m) => m.confidence !== 'low' && m.score >= 0.72)) return true;
+
+  if (textMatchesFishingKeywords(norm.normalizedQuestion, language)) return true;
 
   // Short location-style questions may omit "fishing" explicitly
   const locationPatterns = [

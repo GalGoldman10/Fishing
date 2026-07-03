@@ -85,4 +85,13 @@ describe('fishing term normalization', () => {
     const answer = tryBuildTechniqueAnswer(understanding.intent, 'he');
     expect(answer?.directAnswer).toMatch(/ג'?רג|ז'?ירז|Jarjour/i);
   });
+
+  it('matches prefixed Hebrew form בזירזור', () => {
+    const result = normalizeFishingQuery(
+      'אני רוצה לדוג בזירזור אני לא יודע כלום בזה מה אני צריך לקנות?',
+      'he',
+    );
+    expect(result.matches[0]?.canonical).toBe("ז'ירז'ור");
+    expect(result.normalizedQuestion).toContain("ז'ירז'ור");
+  });
 });

@@ -24,6 +24,24 @@ describe('scopeGuard', () => {
     expect(validateFishingScope('Is tomorrow good for fishing?', 'en').allowed).toBe(true);
     expect(validateFishingScope('האם הרוח טובה לדיג בחוף גורדון?', 'he').allowed).toBe(true);
   });
+
+  it('allows Hebrew slang like בזירזור and infinitive לדוג', () => {
+    expect(
+      validateFishingScope(
+        'אני רוצה לדוג בזירזור אני לא יודע כלום בזה מה אני צריך לקנות?',
+        'he',
+      ).allowed,
+    ).toBe(true);
+  });
+
+  it('answers beginner zirzur gear question end-to-end', async () => {
+    const result = await runFishingResearch({
+      question: 'אני רוצה לדוג בזירזור אני לא יודע כלום בזה מה אני צריך לקנות?',
+      language: 'he',
+    }, { minSources: 0, skipCache: true });
+    expect(result.answer.refused).toBeFalsy();
+    expect(result.answer.directAnswer).toMatch(/ז'?ירז'ור|ג'?רג|Jarjour|light|בד/i);
+  }, 15000);
 });
 
 describe('queryGenerator', () => {
