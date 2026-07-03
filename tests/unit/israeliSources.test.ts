@@ -1,8 +1,10 @@
 import {
   israeliSourcesProvider,
   ISRAELI_CURATED_ENTRIES,
+  extractRelevantPassage,
 } from '@/lib/research/providers/israeliSources';
 import { classifySource } from '@/lib/research/sourceClassification';
+import sourcePages from '@/lib/research/data/sourcePages.json';
 
 describe('israeliSourcesProvider', () => {
   it('returns Hebrew results for a Hebrew location question', async () => {
@@ -57,6 +59,38 @@ describe('israeliSourcesProvider', () => {
       expect(entry.url).toMatch(/^https:\/\/(www\.)?(shvilist\.com|parks\.org\.il|tiulim\.net)\//);
       expect(entry.keywords.length).toBeGreaterThan(2);
     }
+  });
+});
+
+describe('fresh page content (build-time refresh)', () => {
+  it('the committed source-pages file has fetched content with timestamps', () => {
+    expect(sourcePages.pages.length).toBeGreaterThanOrEqual(3);
+    for (const page of sourcePages.pages) {
+      expect(page.text.length).toBeGreaterThan(500);
+      expect(new Date(page.fetchedAt).getTime()).not.toBeNaN();
+    }
+  });
+
+  it('extracts a keyword-relevant passage from page text', () => {
+    const text = 'שורה כללית על טיולים.\nבנתניה מומלץ לדוג בחוף ארגמן שבו יש סלעים ומפרצונים קטנים עם דגים רבים.\nעוד שורה על משהו אחר לגמרי בלי קשר.';
+    const passage = extractRelevantPassage(text, 'איפה כדאי לדוג בנתניה', ['נתניה', 'ארגמן']);
+    expect(passage).toBeDefined();
+    expect(passage).toContain('נתניה');
+  });
+
+  it('returns undefined when no keyword appears in the query', () => {
+    const passage = extractRelevantPassage('טקסט על דיג בחיפה', 'שאלה על אילת', ['חיפה']);
+    expect(passage).toBeUndefined();
+  });
+
+  it('Hebrew queries get fresh passages with the fetch date attached', async () => {
+    const results = await israeliSourcesProvider.search({
+      query: 'איפה כדאי לדוג בנתניה',
+      language: 'he',
+    });
+    expect(results.length).toBeGreaterThan(0);
+    // Fresh shvilist page is committed, so the fetch timestamp must be present.
+    expect(results[0].updatedAt).toBeDefined();
   });
 });
 

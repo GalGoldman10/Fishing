@@ -1,21 +1,39 @@
 /**
  * Curated Israeli fishing knowledge provider.
  *
- * Content sourced from three Israeli sites (retrieved 2026-07-03):
+ * Content sourced from three Israeli sites:
  * - shvilist.com  — Mediterranean fishing beaches guide
  * - parks.org.il  — Israel Nature and Parks Authority (official regulations)
  * - tiulim.net    — recommended fishing places in Israel
  *
- * The sites cannot be scraped live from the browser (CORS), so the relevant
- * knowledge is embedded with the original URLs so answers can cite them.
+ * The sites cannot be scraped live from the browser (CORS). Instead, a daily
+ * GitHub Action (scripts/refresh-sources.mjs) fetches the pages at build time
+ * into lib/research/data/sourcePages.json. For Hebrew queries the provider
+ * searches within that fresh page text; hand-curated bilingual snippets are
+ * the fallback when fresh text is unavailable (e.g. a site blocks the bot).
  */
 
 import type { FishingSearchProvider } from '@/lib/research/providers/types';
 import type { FishingSearchQuery, RawSearchResult } from '@/types/research';
+import sourcePagesJson from '@/lib/research/data/sourcePages.json';
+
+interface SourcePage {
+  id: string;
+  url: string;
+  title: string;
+  fetchedAt: string;
+  text: string;
+}
+
+const SOURCE_PAGES: Map<string, SourcePage> = new Map(
+  ((sourcePagesJson as { pages: SourcePage[] }).pages ?? []).map((p) => [p.id, p]),
+);
 
 interface CuratedEntry {
   id: string;
   url: string;
+  /** Page id inside sourcePages.json holding this entry's fresh full text. */
+  pageId?: string;
   title: { en: string; he: string };
   snippet: { en: string; he: string };
   /** Lowercase keywords in both languages used for matching. */
@@ -34,6 +52,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'shvilist-ashkelon',
     url: SHVILIST_URL,
+    pageId: 'shvilist-beaches',
     title: {
       en: 'Fishing beaches in the Ashkelon area — Shvilist',
       he: 'חופי דיג באזור אשקלון — שביליסט',
@@ -47,6 +66,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'shvilist-ashdod',
     url: SHVILIST_URL,
+    pageId: 'shvilist-beaches',
     title: {
       en: 'Fishing in Ashdod — warm water outlet — Shvilist',
       he: 'דיג באשדוד — שפך המים החמים — שביליסט',
@@ -60,6 +80,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'shvilist-netanya',
     url: SHVILIST_URL,
+    pageId: 'shvilist-beaches',
     title: {
       en: 'Fishing beaches in Netanya — Argaman beach — Shvilist',
       he: 'חופי דיג בנתניה — חוף ארגמן — שביליסט',
@@ -73,6 +94,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'shvilist-haifa',
     url: SHVILIST_URL,
+    pageId: 'shvilist-beaches',
     title: {
       en: 'Fishing in Haifa — Bat Galim, Tantura and Atlit — Shvilist',
       he: 'דיג בחיפה — בת גלים, טנטורה ועתלית — שביליסט',
@@ -86,6 +108,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'shvilist-north',
     url: SHVILIST_URL,
+    pageId: 'shvilist-beaches',
     title: {
       en: 'Fishing in Akko and Nahariya — Shvilist',
       he: 'דיג בעכו ובנהריה — שביליסט',
@@ -99,6 +122,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'shvilist-species',
     url: SHVILIST_URL,
+    pageId: 'shvilist-beaches',
     title: {
       en: 'Fish species along the Israeli Mediterranean coast — Shvilist',
       he: 'סוגי דגים בחופי הים התיכון בישראל — שביליסט',
@@ -112,6 +136,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'shvilist-season',
     url: SHVILIST_URL,
+    pageId: 'shvilist-beaches',
     title: {
       en: 'When fishing is prohibited in the Mediterranean — Shvilist',
       he: 'מתי אסור לדוג בים התיכון — שביליסט',
@@ -127,6 +152,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'parks-license',
     url: PARKS_URL,
+    pageId: 'parks-fishing-info',
     title: {
       en: 'Fishing license rules in Israel — Nature and Parks Authority',
       he: 'רישיון דיג בישראל — רשות הטבע והגנים',
@@ -140,6 +166,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'parks-breeding',
     url: PARKS_URL,
+    pageId: 'parks-fishing-info',
     title: {
       en: 'Breeding season fishing restrictions — Nature and Parks Authority',
       he: 'הגבלות דיג בעונת הרבייה — רשות הטבע והגנים',
@@ -153,6 +180,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'parks-protected',
     url: PARKS_URL,
+    pageId: 'parks-fishing-info',
     title: {
       en: 'Protected species that must not be caught — Nature and Parks Authority',
       he: 'מינים מוגנים שאסור לדוג — רשות הטבע והגנים',
@@ -166,6 +194,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'parks-minimum-size',
     url: PARKS_URL,
+    pageId: 'parks-fish-length',
     title: {
       en: 'Minimum fish sizes — Nature and Parks Authority',
       he: 'אורכי מינימום של דגים — רשות הטבע והגנים',
@@ -179,6 +208,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'parks-reserves',
     url: PARKS_URL,
+    pageId: 'parks-fishing-info',
     title: {
       en: 'Marine nature reserves where fishing is banned — Nature and Parks Authority',
       he: 'שמורות טבע ימיות שאסור לדוג בהן — רשות הטבע והגנים',
@@ -192,6 +222,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'parks-eilat',
     url: PARKS_URL,
+    pageId: 'parks-fishing-info',
     title: {
       en: 'Fishing rules in the Gulf of Eilat — Nature and Parks Authority',
       he: 'כללי דיג במפרץ אילת — רשות הטבע והגנים',
@@ -207,6 +238,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'tiulim-parks',
     url: TIULIM_URL,
+    pageId: 'tiulim-fishing-places',
     title: {
       en: 'Family fishing parks in Israel — Tiulim.net',
       he: 'פארקי דיג משפחתיים בישראל — טיולים.נט',
@@ -220,6 +252,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'tiulim-kinneret',
     url: TIULIM_URL,
+    pageId: 'tiulim-fishing-places',
     title: {
       en: 'Fishing on the Sea of Galilee — recommended beaches — Tiulim.net',
       he: 'דיג בכנרת — חופים מומלצים — טיולים.נט',
@@ -233,6 +266,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'tiulim-telaviv',
     url: TIULIM_URL,
+    pageId: 'tiulim-fishing-places',
     title: {
       en: 'Fishing in Tel Aviv — Reading and the Hilton pier — Tiulim.net',
       he: 'דיג בתל אביב — רידינג ומזח הילטון — טיולים.נט',
@@ -246,6 +280,7 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   {
     id: 'tiulim-yeruham',
     url: TIULIM_URL,
+    pageId: 'tiulim-fishing-places',
     title: {
       en: 'Yeruham Lake — desert fishing spot — Tiulim.net',
       he: 'אגם ירוחם — נקודת דיג במדבר — טיולים.נט',
@@ -268,6 +303,50 @@ function scoreEntry(entry: CuratedEntry, queryText: string): number {
   return score;
 }
 
+const MAX_PASSAGE_LENGTH = 480;
+
+/**
+ * Find the most relevant passage inside freshly fetched page text.
+ * Splits the page into lines/sentences and scores each by overlap with the
+ * entry keywords that appear in the query. Returns undefined when nothing
+ * scores — callers then fall back to the hand-curated snippet.
+ */
+export function extractRelevantPassage(
+  pageText: string,
+  queryText: string,
+  keywords: string[],
+): string | undefined {
+  const activeKeywords = keywords.filter((k) => queryText.includes(k));
+  if (activeKeywords.length === 0) return undefined;
+
+  const segments = pageText
+    .split(/\n+|(?<=[.!?:])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 30 && s.length <= 700);
+
+  let bestIndex = -1;
+  let bestScore = 0;
+  for (let i = 0; i < segments.length; i++) {
+    const lower = segments[i].toLowerCase();
+    let score = 0;
+    for (const keyword of activeKeywords) {
+      if (lower.includes(keyword)) score += keyword.length > 3 ? 2 : 1;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = i;
+    }
+  }
+  if (bestIndex === -1) return undefined;
+
+  // Include the following segment for context when it fits.
+  let passage = segments[bestIndex];
+  if (bestIndex + 1 < segments.length && passage.length + segments[bestIndex + 1].length < MAX_PASSAGE_LENGTH) {
+    passage = `${passage} ${segments[bestIndex + 1]}`;
+  }
+  return passage.slice(0, MAX_PASSAGE_LENGTH);
+}
+
 export const israeliSourcesProvider: FishingSearchProvider = {
   name: 'israeli-fishing-sites',
 
@@ -281,11 +360,23 @@ export const israeliSourcesProvider: FishingSearchProvider = {
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
 
-    return matches.map(({ entry }) => ({
-      title: entry.title[lang],
-      url: entry.url,
-      snippet: entry.snippet[lang],
-      provider: 'israeli-fishing-sites',
-    }));
+    return matches.map(({ entry }) => {
+      const page = entry.pageId ? SOURCE_PAGES.get(entry.pageId) : undefined;
+
+      // Fresh page text is Hebrew — use it for Hebrew queries only.
+      const freshPassage =
+        lang === 'he' && page
+          ? extractRelevantPassage(page.text, queryText, entry.keywords)
+          : undefined;
+
+      return {
+        title: entry.title[lang],
+        url: entry.url,
+        snippet: freshPassage && freshPassage.length >= 60 ? freshPassage : entry.snippet[lang],
+        provider: 'israeli-fishing-sites',
+        // Freshness scoring rewards the build-time fetch date.
+        updatedAt: page?.fetchedAt,
+      };
+    });
   },
 };
