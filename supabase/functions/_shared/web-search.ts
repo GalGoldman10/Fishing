@@ -13,6 +13,13 @@ export interface WebSearchResponse {
   searchedAt: string;
 }
 
+/**
+ * Trusted Israeli fishing sites always included in research:
+ * parks.org.il (official INPA regulations), shvilist.com (Mediterranean
+ * fishing beaches guide), tiulim.net (recommended fishing places).
+ */
+const ISRAELI_FISHING_DOMAINS = ['parks.org.il', 'shvilist.com', 'tiulim.net'];
+
 function fishingQuery(base: string, language: string, locationHint?: string): string {
   const parts = [base.trim()];
   if (locationHint) parts.push(locationHint);
@@ -42,7 +49,11 @@ function filterFishingOnly(results: WebSearchResult[], language: string): WebSea
   return filtered.length > 0 ? filtered : results.filter((r) => r.source === 'wikipedia');
 }
 
-async function searchTavily(query: string, maxResults = 6): Promise<WebSearchResult[]> {
+async function searchTavily(
+  query: string,
+  maxResults = 6,
+  includeDomains?: string[],
+): Promise<WebSearchResult[]> {
   const apiKey = Deno.env.get('TAVILY_API_KEY');
   if (!apiKey) return [];
 
@@ -56,6 +67,7 @@ async function searchTavily(query: string, maxResults = 6): Promise<WebSearchRes
       max_results: maxResults,
       include_answer: false,
       topic: 'general',
+      ...(includeDomains ? { include_domains: includeDomains } : {}),
     }),
   });
 
@@ -70,14 +82,21 @@ async function searchTavily(query: string, maxResults = 6): Promise<WebSearchRes
   }));
 }
 
-async function searchSerper(query: string, maxResults = 6): Promise<WebSearchResult[]> {
+async function searchSerper(
+  query: string,
+  maxResults = 6,
+  siteRestrict?: string[],
+): Promise<WebSearchResult[]> {
   const apiKey = Deno.env.get('SERPER_API_KEY');
   if (!apiKey) return [];
 
+  const q = siteRestrict?.length
+    ? `${query} (${siteRestrict.map((d) => `site:${d}`).join(' OR ')})`
+    : query;
   const res = await fetch('https://google.serper.dev/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-API-KEY': apiKey },
-    body: JSON.stringify({ q: query, num: maxResults }),
+    body: JSON.stringify({ q, num: maxResults }),
   });
 
   if (!res.ok) return [];
@@ -166,13 +185,28 @@ export async function searchWeb(
   let results: WebSearchResult[] = [];
   let usedProvider = 'composite';
 
+  // Dedicated pass over trusted Israeli fishing sites so they are always considered
+  let trustedResults: WebSearchResult[] = [];
+
   if (provider === 'tavily' || provider === 'auto') {
-    results = await searchTavily(enrichedQuery);
+    const [general, trusted] = await Promise.all([
+      searchTavily(enrichedQuery),
+      searchTavily(enrichedQuery, 4, ISRAELI_FISHING_DOMAINS),
+    ]);
+    results = general;
+    trustedResults = trusted;
     if (results.length > 0) usedProvider = 'tavily';
   }
 
   if (results.length === 0 && (provider === 'serper' || provider === 'auto')) {
-    results = await searchSerper(enrichedQuery);
+    const [general, trusted] = await Promise.all([
+      searchSerper(enrichedQuery),
+      trustedResults.length === 0
+        ? searchSerper(enrichedQuery, 4, ISRAELI_FISHING_DOMAINS)
+        : Promise.resolve([] as WebSearchResult[]),
+    ]);
+    results = general;
+    if (trusted.length > 0) trustedResults = trusted;
     if (results.length > 0) usedProvider = 'serper';
   }
 
@@ -182,7 +216,8 @@ export async function searchWeb(
   }
 
   const wiki = await searchWikipedia(query, language);
-  results = filterFishingOnly(dedupeResults([...results, ...wiki]), language);
+  // Trusted Israeli sites first so they survive the final slice(0, 8)
+  results = filterFishingOnly(dedupeResults([...trustedResults, ...results, ...wiki]), language);
 
   if (results.length === 0) {
     usedProvider = 'wikipedia';

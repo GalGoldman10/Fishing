@@ -19,6 +19,7 @@ import { synthesizeAnswer } from '@/lib/research/answerSynthesis';
 import { enrichAnswerWithLocalKnowledge } from '@/lib/research/localAnswerEngine';
 import type { FishingSearchProvider } from '@/lib/research/providers/types';
 import { wikipediaProvider } from '@/lib/research/providers/wikipedia';
+import { israeliSourcesProvider } from '@/lib/research/providers/israeliSources';
 
 export interface OrchestratorOptions {
   providers?: FishingSearchProvider[];
@@ -32,7 +33,7 @@ export async function runFishingResearch(
 ): Promise<ResearchOrchestratorOutput> {
   const { language } = input;
   const now = new Date().toISOString();
-  const providers = options.providers ?? [wikipediaProvider];
+  const providers = options.providers ?? [wikipediaProvider, israeliSourcesProvider];
   const minSources = options.minSources ?? 3;
   const maxSources = options.maxSources ?? 8;
 

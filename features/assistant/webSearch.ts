@@ -6,6 +6,7 @@ import {
   buildWikipediaFishingQuery,
   filterFishingResults,
 } from '@/lib/localization/fishingSearch';
+import { israeliSourcesProvider } from '@/lib/research/providers/israeliSources';
 
 async function searchWikipediaClient(query: string, language: string): Promise<WebSearchResult[]> {
   const lang = language === 'he' ? 'he' : 'en';
@@ -60,12 +61,22 @@ export async function performWebSearch(
     }
   }
 
-  const wiki = await searchWikipediaClient(fishingQuery, language);
+  const lang = language === 'he' ? 'he' : 'en';
+  const [curatedRaw, wiki] = await Promise.all([
+    israeliSourcesProvider.search({ query, language: lang }),
+    searchWikipediaClient(fishingQuery, language),
+  ]);
+  const curated: WebSearchResult[] = curatedRaw.map((r) => ({
+    title: r.title,
+    url: r.url,
+    snippet: r.snippet,
+    source: 'israeli-fishing-sites',
+  }));
 
   return {
     query: fishingQuery,
-    results: wiki,
-    provider: 'wikipedia-client',
+    results: [...curated, ...wiki],
+    provider: curated.length > 0 ? 'israeli-sites+wikipedia' : 'wikipedia-client',
     searchedAt: new Date().toISOString(),
   };
 }

@@ -1,0 +1,291 @@
+/**
+ * Curated Israeli fishing knowledge provider.
+ *
+ * Content sourced from three Israeli sites (retrieved 2026-07-03):
+ * - shvilist.com  — Mediterranean fishing beaches guide
+ * - parks.org.il  — Israel Nature and Parks Authority (official regulations)
+ * - tiulim.net    — recommended fishing places in Israel
+ *
+ * The sites cannot be scraped live from the browser (CORS), so the relevant
+ * knowledge is embedded with the original URLs so answers can cite them.
+ */
+
+import type { FishingSearchProvider } from '@/lib/research/providers/types';
+import type { FishingSearchQuery, RawSearchResult } from '@/types/research';
+
+interface CuratedEntry {
+  id: string;
+  url: string;
+  title: { en: string; he: string };
+  snippet: { en: string; he: string };
+  /** Lowercase keywords in both languages used for matching. */
+  keywords: string[];
+}
+
+const SHVILIST_URL =
+  'https://shvilist.com/%D7%97%D7%95%D7%A4%D7%99-%D7%93%D7%99%D7%92-%D7%91%D7%99%D7%9D-%D7%94%D7%AA%D7%99%D7%9B%D7%95%D7%9F/';
+const PARKS_URL =
+  'https://www.parks.org.il/sea/%d7%93%d7%92%d7%99%d7%9d-%d7%97%d7%9b%d7%9d-%d7%a9%d7%95%d7%9e%d7%a8%d7%99%d7%9d-%d7%a2%d7%9c-%d7%94%d7%99%d7%9d/';
+const TIULIM_URL =
+  'https://tiulim.net/%D7%9E%D7%A7%D7%95%D7%9E%D7%95%D7%AA-%D7%93%D7%99%D7%92-%D7%A9%D7%9E%D7%95%D7%9E%D7%9C%D7%A6%D7%99%D7%9D-%D7%91%D7%99%D7%A9%D7%A8%D7%90%D7%9C/';
+
+export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
+  // ---- shvilist.com — Mediterranean fishing beaches ----
+  {
+    id: 'shvilist-ashkelon',
+    url: SHVILIST_URL,
+    title: {
+      en: 'Fishing beaches in the Ashkelon area — Shvilist',
+      he: 'חופי דיג באזור אשקלון — שביליסט',
+    },
+    snippet: {
+      en: 'Around Ashkelon you can fish at Zikim beach, Nitzanim beach (paid entry), or for free at the Ashkelon National Park beach (Katza area) — a sandy section for leisure and a rocky section suited for fishing.',
+      he: 'באזור אשקלון אפשר לדוג בחוף זיקים או בחוף ניצנים (כניסה בתשלום), או בחינם בחוף הפארק הלאומי אשקלון (אזור קצא"א) — קטע חולי לפנאי וקטע סלעי המתאים לדיג.',
+    },
+    keywords: ['אשקלון', 'זיקים', 'ניצנים', 'ashkelon', 'zikim', 'nitzanim', 'פארק לאומי', 'national park'],
+  },
+  {
+    id: 'shvilist-ashdod',
+    url: SHVILIST_URL,
+    title: {
+      en: 'Fishing in Ashdod — warm water outlet — Shvilist',
+      he: 'דיג באשדוד — שפך המים החמים — שביליסט',
+    },
+    snippet: {
+      en: 'A recommended fishing point in Ashdod is the warm-water outlet next to the power station, which attracts fish year round.',
+      he: 'נקודת דיג מומלצת באשדוד היא שפך המים החמים שליד תחנת הכוח, המושך דגים לאורך כל השנה.',
+    },
+    keywords: ['אשדוד', 'ashdod', 'תחנת הכוח', 'power station', 'מים חמים'],
+  },
+  {
+    id: 'shvilist-netanya',
+    url: SHVILIST_URL,
+    title: {
+      en: 'Fishing beaches in Netanya — Argaman beach — Shvilist',
+      he: 'חופי דיג בנתניה — חוף ארגמן — שביליסט',
+    },
+    snippet: {
+      en: 'The Netanya coastline is full of reefs and rocky beaches. The recommended spot is Argaman beach at the southern entrance to the city — rocks forming small coves that hold fish, with convenient vehicle access almost to the beach.',
+      he: 'רצועת החוף של נתניה משופעת בריפים ובחופים מסולעים. הנקודה המומלצת היא חוף ארגמן בכניסה הדרומית לעיר — סלעים היוצרים מפרצונים קטנים שיש בהם דגים, עם גישה נוחה לרכב כמעט עד החוף.',
+    },
+    keywords: ['נתניה', 'netanya', 'ארגמן', 'argaman', 'ריף', 'reef', 'מפרצונים'],
+  },
+  {
+    id: 'shvilist-haifa',
+    url: SHVILIST_URL,
+    title: {
+      en: 'Fishing in Haifa — Bat Galim, Tantura and Atlit — Shvilist',
+      he: 'דיג בחיפה — בת גלים, טנטורה ועתלית — שביליסט',
+    },
+    snippet: {
+      en: 'In Haifa most beaches suffer from port pollution, but Bat Galim is recommended — a rocky beach with rich, clean fish where several methods work. Tantura beach and the rocky Atlit beach are further good options south of the city.',
+      he: 'בחיפה רוב החופים מזוהמים מפעילות הנמל, אך חוף בת גלים מומלץ — חוף סלעי עם דגה עשירה ונקייה שבו אפשר לדוג בכמה שיטות. חוף טנטורה וחוף עתלית המסולע הם המלצות נוספות מדרום לעיר.',
+    },
+    keywords: ['חיפה', 'haifa', 'בת גלים', 'bat galim', 'טנטורה', 'tantura', 'עתלית', 'atlit'],
+  },
+  {
+    id: 'shvilist-north',
+    url: SHVILIST_URL,
+    title: {
+      en: 'Fishing in Akko and Nahariya — Shvilist',
+      he: 'דיג בעכו ובנהריה — שביליסט',
+    },
+    snippet: {
+      en: 'In Akko you can fish along the whole coastal strip up to the Mazra area. In Nahariya fishing is good along the entire coast up to Rosh HaNikra; the Nahariya pier is a recommended spot for beginners.',
+      he: 'בעכו אפשר לדוג לאורך כל רצועת החוף עד אזור מזרעה. בנהריה הדיג טוב לכל אורך החוף ועד ראש הנקרה; המזח של נהריה הוא נקודה מומלצת למתחילים.',
+    },
+    keywords: ['עכו', 'akko', 'acre', 'נהריה', 'nahariya', 'ראש הנקרה', 'rosh hanikra', 'מזח', 'pier', 'מתחילים', 'beginner'],
+  },
+  {
+    id: 'shvilist-species',
+    url: SHVILIST_URL,
+    title: {
+      en: 'Fish species along the Israeli Mediterranean coast — Shvilist',
+      he: 'סוגי דגים בחופי הים התיכון בישראל — שביליסט',
+    },
+    snippet: {
+      en: 'Israeli Mediterranean species by habitat: coastal fish in shallow water (grouper/lokus, parida, aras, marmir, sargos), bottom fish (red mullet/barbunia, hake, masar, sultan ibrahim), and pelagic schooling fish (sardine, bonito/palamida, tuna, intias).',
+      he: 'מיני הדגים בחופי ישראל לפי בית גידול: דגי חוף במים רדודים (לוקוס, פארידה, ארס, מרמיר, סרגוס), דגי קרקע (ברבוניה, בקלה, מסר, מול אדום/סולטן איברהים), ודגי מים עליונים בלהקות (סרדין, פלמידה, טונה, אינטיאס).',
+    },
+    keywords: ['סוגי דגים', 'מינים', 'לוקוס', 'ברבוניה', 'סרגוס', 'פלמידה', 'species', 'what fish', 'אילו דגים', 'איזה דגים', 'grouper', 'sardine'],
+  },
+  {
+    id: 'shvilist-season',
+    url: SHVILIST_URL,
+    title: {
+      en: 'When fishing is prohibited in the Mediterranean — Shvilist',
+      he: 'מתי אסור לדוג בים התיכון — שביליסט',
+    },
+    snippet: {
+      en: 'Fishing is banned during the fish breeding season to let populations recover. The dates change each year — usually between April and June — and are published annually by the Fisheries Department. Check the Nature and Parks Authority guidance before going.',
+      he: 'הדיג אסור בתקופת הרבייה של הדגים כדי לאפשר את התחדשות הדגה. התאריכים משתנים בכל שנה — לרוב בין אפריל ליוני — ומתפרסמים על ידי אגף הדיג. מומלץ לבדוק את ההנחיות באתר רשות הטבע והגנים.',
+    },
+    keywords: ['עונת רבייה', 'איסור דיג', 'מתי אסור', 'breeding season', 'closed season', 'when is fishing banned', 'אסור לדוג'],
+  },
+
+  // ---- parks.org.il — official INPA regulations ----
+  {
+    id: 'parks-license',
+    url: PARKS_URL,
+    title: {
+      en: 'Fishing license rules in Israel — Nature and Parks Authority',
+      he: 'רישיון דיג בישראל — רשות הטבע והגנים',
+    },
+    snippet: {
+      en: 'Official INPA guidance: rod fishing from the shore without auxiliary aids requires no license. A personal sport fishing license is required for shore fishing with aids (drone, kite, motor), cast nets, rod fishing from any vessel or flotation device, and spearfishing while free-diving. Licenses are issued online through the Ministry of Agriculture.',
+      he: 'הנחיות רשות הטבע והגנים: דיג בחכה מהחוף ללא אמצעי עזר אינו מחייב רישיון. רישיון דיג אישי ספורטיבי נדרש לדיג מהחוף עם אמצעי עזר (רחפן, עפיפון, מנוע), רשת זריקה (שבאקה), דיג בחכה מכלי שיט או אמצעי ציפה, ורובה דיג בצלילה חופשית. הנפקת רישיון מתבצעת באופן מקוון באתר משרד החקלאות.',
+    },
+    keywords: ['רישיון', 'license', 'רישיון דיג', 'fishing license', 'חוקי', 'legal', 'מותר לדוג', 'צריך רישיון', 'permit', 'רחפן', 'שבאקה'],
+  },
+  {
+    id: 'parks-breeding',
+    url: PARKS_URL,
+    title: {
+      en: 'Breeding season fishing restrictions — Nature and Parks Authority',
+      he: 'הגבלות דיג בעונת הרבייה — רשות הטבע והגנים',
+    },
+    snippet: {
+      en: 'Each year a fishing ban of up to 90 consecutive days applies between March 1 and July 1, as set by the Chief Fisheries Officer and published officially. The ban does not apply to rod fishing from the shore. In the Sea of Galilee, tilapia nesting restrictions apply roughly March 15 – July 15 in defined areas.',
+      he: 'בכל שנה חל איסור דיג עד 90 ימים רצופים בין 1 במרץ ל-1 ביולי, כפי שקובע פקיד הדיג הראשי ומתפרסם רשמית. האיסור אינו חל על דיג בחכה מהחוף. בכנרת חלות מגבלות עונת הקינון של אמנון הגליל בין 15 במרץ ל-15 ביולי באזורים מוגדרים.',
+    },
+    keywords: ['עונת רבייה', 'איסור', 'תקנות', 'regulations', 'breeding', 'closed season', 'מתי מותר', 'קינון', 'אמנון'],
+  },
+  {
+    id: 'parks-protected',
+    url: PARKS_URL,
+    title: {
+      en: 'Protected species that must not be caught — Nature and Parks Authority',
+      he: 'מינים מוגנים שאסור לדוג — רשות הטבע והגנים',
+    },
+    snippet: {
+      en: 'Protected species in Israel that must never be caught: all sharks and rays, the slipper lobster, all marine mammals, all sea turtles, and the Alexandria grouper (protected since 2021). In the Gulf of Eilat protection is broader: all mollusks and most fish are protected. Released immediately if caught by accident.',
+      he: 'ערכי טבע מוגנים שאסור לדוג בישראל: כל מיני הכרישים והבטאים, כפן גושמני (לובסטר), כל היונקים הימיים, כל מיני צבי הים, ודקר אלכסנדרוני (מוגן מ-2021). במפרץ אילת ההגנה רחבה יותר: כל הרכיכות ורוב הדגים מוגנים. דג מוגן שנתפס בטעות יש לשחרר מיד.',
+    },
+    keywords: ['מוגן', 'מוגנים', 'protected', 'כריש', 'shark', 'צב ים', 'turtle', 'דקר', 'לובסטר', 'אסור לדוג דגים', 'ערכי טבע'],
+  },
+  {
+    id: 'parks-minimum-size',
+    url: PARKS_URL,
+    title: {
+      en: 'Minimum fish sizes — Nature and Parks Authority',
+      he: 'אורכי מינימום של דגים — רשות הטבע והגנים',
+    },
+    snippet: {
+      en: 'Some species may only be kept above a legal minimum length, measured with the fish lying flat from the tip of the mouth to the tip of the tail. Minimum sizes protect young fish that have not yet reproduced. The full official list is on the INPA site.',
+      he: 'יש דגים שמותר לדוג רק מעל אורך מינימום חוקי, הנמדד בשכיבה מקצה הפה עד קצה הזנב. אורכי המינימום נועדו להגן על פרטים צעירים שטרם התרבו. הרשימה הרשמית המלאה באתר רשות הטבע והגנים.',
+    },
+    keywords: ['אורך מינימום', 'minimum size', 'minimum length', 'גודל מינימלי', 'מותר להשאיר', 'keep fish', 'איזה גודל'],
+  },
+  {
+    id: 'parks-reserves',
+    url: PARKS_URL,
+    title: {
+      en: 'Marine nature reserves where fishing is banned — Nature and Parks Authority',
+      he: 'שמורות טבע ימיות שאסור לדוג בהן — רשות הטבע והגנים',
+    },
+    snippet: {
+      en: 'Fishing is prohibited inside marine nature reserves, including Rosh HaNikra, Shikmona, Rosh Carmel, Dor HaBonim, Gador and the Nitzanim dunes reserves in the Mediterranean, the Coral Reserve in Eilat, and the Bethsaida (Batiha) reserve in the Sea of Galilee. Municipal bylaws also ban fishing at declared bathing beaches, marinas and ports.',
+      he: 'הדיג אסור בתוך שמורות טבע ימיות, בהן ראש הנקרה, שקמונה, ראש כרמל, דור הבונים, גדור וחולות ניצנים בים התיכון, שמורת האלמוגים באילת ושמורת הבטיחה בכנרת. חוקי עזר עירוניים אוסרים דיג גם בחופי רחצה מוכרזים, מעגנות ונמלים.',
+    },
+    keywords: ['שמורה', 'שמורת טבע', 'reserve', 'אסור לדוג איפה', 'where is fishing banned', 'אלמוגים', 'בטיחה', 'דור הבונים', 'שקמונה'],
+  },
+  {
+    id: 'parks-eilat',
+    url: PARKS_URL,
+    title: {
+      en: 'Fishing rules in the Gulf of Eilat — Nature and Parks Authority',
+      he: 'כללי דיג במפרץ אילת — רשות הטבע והגנים',
+    },
+    snippet: {
+      en: 'In Eilat, rod fishing from the shore is allowed without a license outside banned zones. Beyond 300 m from shore, fishing is allowed only from a flotation device with a rod and a sport license. Fishing is banned near the port, Almog beach and the Coral Reserve. All mollusks are protected and most fish species are protected except specific permitted families.',
+      he: 'באילת מותר דיג בחכה מקו החוף ללא רישיון מחוץ לאזורים האסורים. מעבר ל-300 מטר מהחוף מותר לדוג רק מאמצעי ציפה בחכה ועם רישיון ספורטיבי. הדיג אסור באזור הנמל, חוף אלמוג ושמורת האלמוגים. כל הרכיכות מוגנות ורוב מיני הדגים מוגנים למעט משפחות מותרות.',
+    },
+    keywords: ['אילת', 'eilat', 'מפרץ', 'ים סוף', 'red sea', 'אלמוג', 'coral'],
+  },
+
+  // ---- tiulim.net — recommended fishing places ----
+  {
+    id: 'tiulim-parks',
+    url: TIULIM_URL,
+    title: {
+      en: 'Family fishing parks in Israel — Tiulim.net',
+      he: 'פארקי דיג משפחתיים בישראל — טיולים.נט',
+    },
+    snippet: {
+      en: 'Stocked fishing parks suited to families and beginners, with gear rental: Sifsufa Fishing Park (Upper Galilee), Dag BaKfar in Yokneam, Maayan Zvi Fishing Park near Maagan Michael, and Dag VaGan in Beit Hanan — quiet lakes, shaded corners and kids areas.',
+      he: 'פארקי דיג מאוכלסים המתאימים למשפחות ולמתחילים, עם השכרת ציוד: פארק הדיג ספסופה (גליל עליון), דג בכפר ביוקנעם, פארק הדיג מעיין צבי ליד מעגן מיכאל, ודג וגן בבית חנן — אגמים שקטים, פינות מוצלות ומתחמי ילדים.',
+    },
+    keywords: ['פארק דיג', 'fishing park', 'משפחה', 'family', 'ילדים', 'kids', 'ספסופה', 'יוקנעם', 'מעגן מיכאל', 'דג בכפר', 'השכרת ציוד'],
+  },
+  {
+    id: 'tiulim-kinneret',
+    url: TIULIM_URL,
+    title: {
+      en: 'Fishing on the Sea of Galilee — recommended beaches — Tiulim.net',
+      he: 'דיג בכנרת — חופים מומלצים — טיולים.נט',
+    },
+    snippet: {
+      en: 'The Sea of Galilee offers many fishing options; the Fisheries Department stocks tilapia to support the lake ecosystem. Recommended fishing beaches include Dekel beach, the fishermen\'s marina, Gai beach, Shikmim beach and Ginosar. Note the ~90-day nesting-season ban, usually between March and July, in defined areas.',
+      he: 'הכנרת מציעה שלל אפשרויות דיג; אגף הדיג מאכלס דגיגי אמנון לשיפור המערכת האקולוגית. חופים מומלצים לדיג: חוף הדקל, מעגן הדייגים, חוף גיא, חוף שקמים וחוף גינוסר. שימו לב לאיסור דיג של כ-90 יום בעונת ההטלה, לרוב בין מרץ ליולי, באזורים מוגדרים.',
+    },
+    keywords: ['כנרת', 'kinneret', 'sea of galilee', 'טבריה', 'tiberias', 'אמנון', 'tilapia', 'גינוסר', 'ginosar', 'אגם'],
+  },
+  {
+    id: 'tiulim-telaviv',
+    url: TIULIM_URL,
+    title: {
+      en: 'Fishing in Tel Aviv — Reading and the Hilton pier — Tiulim.net',
+      he: 'דיג בתל אביב — רידינג ומזח הילטון — טיולים.נט',
+    },
+    snippet: {
+      en: 'One of the main fishing points in central Israel is Reading beach in north Tel Aviv, along with the Hilton beach pier. Around 600 fish species live in the Mediterranean, with fewer species reaching the warmer, saltier Israeli coast.',
+      he: 'אחת מנקודות הדיג העיקריות במרכז הארץ היא חוף רידינג בצפון תל אביב, וכן המזח בחוף הילטון. בים התיכון ידועים כ-600 מיני דגים, וחלק קטן יותר מגיע לחופי ישראל החמים והמלוחים יותר.',
+    },
+    keywords: ['תל אביב', 'tel aviv', 'רידינג', 'reading', 'הילטון', 'hilton', 'מרכז', 'גורדון', 'gordon'],
+  },
+  {
+    id: 'tiulim-yeruham',
+    url: TIULIM_URL,
+    title: {
+      en: 'Yeruham Lake — desert fishing spot — Tiulim.net',
+      he: 'אגם ירוחם — נקודת דיג במדבר — טיולים.נט',
+    },
+    snippet: {
+      en: 'Yeruham Lake, west of the town of Yeruham in the Negev, is an artificial lake surrounded by a park with picnic spots and bike trails. Swimming is prohibited, but fishing is popular there — a surprising desert fishing destination.',
+      he: 'אגם ירוחם, ממערב לעיר ירוחם בנגב, הוא אגם מלאכותי מוקף פארק עם פינות פיקניק ומסלולי אופניים. הרחצה בו אסורה, אך הוא יעד דיג פופולרי — נקודת דיג מפתיעה במדבר.',
+    },
+    keywords: ['ירוחם', 'yeruham', 'נגב', 'negev', 'מדבר', 'desert', 'אגם מלאכותי'],
+  },
+];
+
+function scoreEntry(entry: CuratedEntry, queryText: string): number {
+  let score = 0;
+  for (const keyword of entry.keywords) {
+    if (queryText.includes(keyword)) {
+      score += keyword.length > 3 ? 2 : 1;
+    }
+  }
+  return score;
+}
+
+export const israeliSourcesProvider: FishingSearchProvider = {
+  name: 'israeli-fishing-sites',
+
+  async search(query: FishingSearchQuery): Promise<RawSearchResult[]> {
+    const lang = query.language === 'he' ? 'he' : 'en';
+    const queryText = query.query.toLowerCase();
+
+    const matches = ISRAELI_CURATED_ENTRIES
+      .map((entry) => ({ entry, score: scoreEntry(entry, queryText) }))
+      .filter((m) => m.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+    return matches.map(({ entry }) => ({
+      title: entry.title[lang],
+      url: entry.url,
+      snippet: entry.snippet[lang],
+      provider: 'israeli-fishing-sites',
+    }));
+  },
+};

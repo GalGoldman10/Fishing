@@ -22,19 +22,33 @@ export interface FishingSearchQuery {
   freshness?: string;
 }
 
+/**
+ * Trusted Israeli fishing sites the bot should always consult:
+ * - parks.org.il — Israel Nature and Parks Authority (official regulations)
+ * - shvilist.com — Mediterranean fishing beaches guide
+ * - tiulim.net — recommended fishing places in Israel
+ */
+const ISRAELI_FISHING_DOMAINS = ['parks.org.il', 'shvilist.com', 'tiulim.net'];
+
 function fishingQuery(base: string, language: string): string {
   const suffix = language === 'he' ? ' דיג דגים חוף' : ' fishing angling shore';
   const exclusions = language === 'he' ? '-מסעדה -מתכון' : '-restaurant -recipe -phishing';
   return `${base.trim()}${suffix} ${exclusions}`.trim();
 }
 
-async function searchTavily(query: string): Promise<RawSearchResult[]> {
+async function searchTavily(query: string, includeDomains?: string[]): Promise<RawSearchResult[]> {
   const apiKey = Deno.env.get('TAVILY_API_KEY');
   if (!apiKey) return [];
   const res = await fetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ api_key: apiKey, query, search_depth: 'advanced', max_results: 5 }),
+    body: JSON.stringify({
+      api_key: apiKey,
+      query,
+      search_depth: 'advanced',
+      max_results: 5,
+      ...(includeDomains ? { include_domains: includeDomains } : {}),
+    }),
   });
   if (!res.ok) return [];
   const data = await res.json();
@@ -43,13 +57,16 @@ async function searchTavily(query: string): Promise<RawSearchResult[]> {
   }));
 }
 
-async function searchSerper(query: string): Promise<RawSearchResult[]> {
+async function searchSerper(query: string, siteRestrict?: string[]): Promise<RawSearchResult[]> {
   const apiKey = Deno.env.get('SERPER_API_KEY');
   if (!apiKey) return [];
+  const q = siteRestrict?.length
+    ? `${query} (${siteRestrict.map((d) => `site:${d}`).join(' OR ')})`
+    : query;
   const res = await fetch('https://google.serper.dev/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-API-KEY': apiKey },
-    body: JSON.stringify({ q: query, num: 5 }),
+    body: JSON.stringify({ q, num: 5 }),
   });
   if (!res.ok) return [];
   const data = await res.json();
@@ -91,8 +108,15 @@ export async function searchAllProviders(query: FishingSearchQuery): Promise<Raw
   const provider = Deno.env.get('WEB_SEARCH_PROVIDER') ?? 'auto';
   const tasks: Promise<RawSearchResult[]>[] = [];
 
-  if (provider === 'tavily' || provider === 'auto') tasks.push(searchTavily(enriched));
-  if (provider === 'serper' || provider === 'auto') tasks.push(searchSerper(enriched));
+  if (provider === 'tavily' || provider === 'auto') {
+    tasks.push(searchTavily(enriched));
+    // Dedicated pass over trusted Israeli fishing sites so they are always considered
+    tasks.push(searchTavily(enriched, ISRAELI_FISHING_DOMAINS));
+  }
+  if (provider === 'serper' || provider === 'auto') {
+    tasks.push(searchSerper(enriched));
+    tasks.push(searchSerper(enriched, ISRAELI_FISHING_DOMAINS));
+  }
   tasks.push(searchWikipedia(query.query, query.language));
 
   const settled = await Promise.allSettled(tasks);
