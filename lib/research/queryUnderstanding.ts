@@ -3,10 +3,13 @@
  */
 
 import type { FishingSearchCategory } from '@/types/research';
+import { classifyFishingQuestion } from '@/lib/research/fishingTechniques';
 
 export interface QueryUnderstanding {
   intent: string;
   category: FishingSearchCategory;
+  /** Multi-label classification for answer routing (requirement §3). */
+  questionClasses?: import('@/lib/research/fishingTechniques/types').QuestionClass[];
   locationName?: string;
   country?: string;
   region?: string;
@@ -48,7 +51,7 @@ function detectCategory(question: string, language: 'en' | 'he'): FishingSearchC
   if (/regulat|license|licence|legal|minimum.*(size|length)|size limit|can i keep|תקנ|רישיון|מינימום|חוקי|מותר להשאיר|protected|מוגן/i.test(question)) return 'regulation';
   if (/equipment|rod|reel|line|hook|sinker|ציוד|חכה|סליל|קרס|משקולת/i.test(question)) return 'equipment';
   if (/species|catch|identify|לכוד|מין|זהה|דג\b|fish\b/i.test(question)) return 'species';
-  if (/technique|method|cast|surf|rock|rig|טכניק|שיטת|הטלה/i.test(question)) return 'technique';
+  if (/technique|method|cast|surf|rock|rig|knot|jig|hook set|strike|טכניק|שיטת|הטלה|ריג|קשר|ג'?יג|הכאה/i.test(question)) return 'technique';
   if (/weather|wind|wave|tide|temperature|רוח|גל|גאות|מזג/i.test(question)) return 'conditions';
   if (/safe|danger|hazard|current|slippery|בטיח|סכנ|זרם/i.test(question)) return 'safety';
   if (/report|forecast|activity|דיווח|תחזית/i.test(question)) return 'report';
@@ -93,6 +96,7 @@ export function understandQuery(
   return {
     intent: question.trim(),
     category,
+    questionClasses: classifyFishingQuestion(question),
     locationName,
     country: isIsraeliLocation ? 'IL' : undefined,
     region: isIsraeliLocation ? 'Mediterranean' : undefined,

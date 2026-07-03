@@ -30,6 +30,7 @@ import {
   type Lang,
   type SpeciesTactics,
 } from '@/lib/research/fishingKnowledge';
+import { tryBuildTechniqueAnswer } from '@/lib/research/fishingTechniques';
 import type {
   EquipmentRecommendation,
   FishRecommendation,
@@ -288,6 +289,32 @@ export function buildLocalAnswer(
 
   const habitatKey = spot ? shoreTypeToHabitat(spot.shoreType) : detectHabitat(fullText);
   const habitat = habitatKey ? HABITAT_TACTICS[habitatKey] : undefined;
+
+  // Technique knowledge base — answers rig/knot/skill/lure/bait/location questions
+  // with step-by-step expert content (before generic habitat fallback).
+  const asksConditionsEarly =
+    /weather|wind|wave|good for fishing|can i fish|worth (going|fishing)|right now|today|tonight|tomorrow|מזג|רוח|גל|מחר|היום|הלילה|עכשיו|כדאי (לצאת|לדוג)|אפשר לדוג|טוב לדיג/i.test(question);
+  const isEducationalConditionsQuestion = /how do|how does|why do|what.*affect|איך|למה|משפיע/i.test(question);
+  const isLiveConditionsQuestion =
+    asksConditionsEarly &&
+    !isEducationalConditionsQuestion &&
+    (/today|tonight|now|היום|עכשיו|הלילה|right now/i.test(question) || understanding.needsWeather);
+
+  const asksFishWithBaitList = /what fish.*(with|using)|which fish.*(with|using)|catch.*with|אילו דגים.*(עם|ב)|מה אפשר.*(עם|ב)/i.test(question);
+
+  if (!isLiveConditionsQuestion && !asksFishWithBaitList) {
+    const techniqueResult = tryBuildTechniqueAnswer(question, language, habitatKey, sources);
+    if (techniqueResult) {
+      const extraSafety = habitat?.safety.map((s) => s[language]) ?? [];
+      return {
+        directAnswer: techniqueResult.directAnswer,
+        safetyWarnings: [...(techniqueResult.safetyWarnings ?? []), ...extraSafety],
+        usedLocalDb: true,
+        grounded: true,
+      };
+    }
+  }
+
   const bait = detectBait(fullText);
   const target = detectTargetSpecies(fullText);
 
