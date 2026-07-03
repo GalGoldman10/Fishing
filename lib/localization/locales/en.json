@@ -37,6 +37,8 @@
     "desc2": "Get personalized advice based on real location data, not guesses.",
     "title3": "Prepare the Right Equipment",
     "desc3": "Build safe, effective setups for your experience level and target species.",
+    "titleConditions": "Check Live Sea Conditions",
+    "descConditions": "Waves, wind, tides and a fishing suitability score — with safety warnings when the sea is rough.",
     "continueGuest": "Continue as Guest",
     "signIn": "Sign In",
     "createAccount": "Create Account"
