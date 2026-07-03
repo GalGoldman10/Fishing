@@ -3,6 +3,7 @@
  */
 
 import { normalizeFishingQuery } from '@/lib/research/fishingTermNormalization';
+import { detectTargetSpecies } from '@/lib/research/fishingKnowledge';
 
 const FISHING_KEYWORDS_EN = [
   'fish', 'fishing', 'angler', 'angling', 'bait', 'lure', 'rod', 'reel', 'tackle',
@@ -18,6 +19,8 @@ const FISHING_KEYWORDS_HE = [
   'חוף', 'מזח', 'נמל', 'לוכד', 'ציוד', 'גל', 'גאות', 'שפל', 'סירה', 'קיאק', 'קרס',
   'משקולת', 'פלואט', 'רישיון', 'תקנה', 'לוקוס', 'דניס', 'מושט', 'רוח', 'ים', 'אגם', 'נהר',
   'זירזור', 'זרזור', 'גרגור', 'גירגור', 'גיג', 'ג\'יג', 'ריג', 'סיליקון',
+  'בורי', 'ברבוניה', 'סרגוס', 'גומבר', 'ברקודה', 'מרמור', 'ליציה', 'אמנון',
+  'לתפוס', 'ללכוד', 'תפוס',
 ];
 
 const FISHING_WEATHER_PATTERNS_EN = [
@@ -40,6 +43,21 @@ const FISHING_WEATHER_PATTERNS_HE = [
   /(ב|ל)?גר?גור/,
 ];
 
+const FISHING_INTENT_PATTERNS_HE = [
+  /איפה.*(ל)?תפוס/,
+  /איפה.*(ל)?לכוד/,
+  /מה אפשר (ל)?תפוס/,
+  /איזה (חוף|מקום|מזח).*דג/,
+  /(ל)?תפוס.*(ב|של)/,
+];
+
+const FISHING_INTENT_PATTERNS_EN = [
+  /where (can i|to|do i) catch/i,
+  /where.*fish for/i,
+  /what can i catch/i,
+  /best place.*catch/i,
+];
+
 const BLOCKED_TOPICS_EN = [
   /politic/i, /election/i, /celebrity/i, /movie/i, /recipe(?!.*bait)/i,
   /cryptocurrency/i, /bitcoin/i, /stock market/i, /gambling/i,
@@ -58,6 +76,11 @@ export function isFishingQuestion(question: string, language: 'en' | 'he'): bool
   if (text.includes('phishing')) return false;
 
   if (textMatchesFishingKeywords(question, language)) return true;
+
+  if (detectTargetSpecies(question)) return true;
+
+  const intentPatterns = language === 'he' ? FISHING_INTENT_PATTERNS_HE : FISHING_INTENT_PATTERNS_EN;
+  if (intentPatterns.some((p) => p.test(question))) return true;
 
   const weatherPatterns = language === 'he' ? FISHING_WEATHER_PATTERNS_HE : FISHING_WEATHER_PATTERNS_EN;
   if (weatherPatterns.some((p) => p.test(question))) return true;

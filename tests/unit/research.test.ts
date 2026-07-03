@@ -34,6 +34,19 @@ describe('scopeGuard', () => {
     ).toBe(true);
   });
 
+  it('allows species location questions like איפה לתפוס בורי', () => {
+    expect(validateFishingScope('איפה אפשר לתפוס בורי?', 'he').allowed).toBe(true);
+  });
+
+  it('answers where to catch mullet end-to-end', async () => {
+    const result = await runFishingResearch({
+      question: 'איפה אפשר לתפוס בורי?',
+      language: 'he',
+    }, { minSources: 0, skipCache: true });
+    expect(result.answer.refused).toBeFalsy();
+    expect(result.answer.directAnswer).toMatch(/בורי|מצוף|מרינ|נמל/i);
+  }, 15000);
+
   it('answers beginner zirzur gear question end-to-end', async () => {
     const result = await runFishingResearch({
       question: 'אני רוצה לדוג בזירזור אני לא יודע כלום בזה מה אני צריך לקנות?',
