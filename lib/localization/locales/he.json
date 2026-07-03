@@ -412,6 +412,8 @@
     "refresh": "רענון נתונים",
     "marineWarning": "אזהרה ימית",
     "useMyLocation": "שימוש במיקום שלי",
+    "nearestBeach": "החוף הקרוב אליך",
+    "nearestBeachDistance": "החוף הקרוב אליך · {{distance}} ק\"מ",
     "viewFullDetails": "הצגת פרטים מלאים",
     "bestTime": "הזמן הטוב ביותר: {{time}}",
     "source": "מקור: {{source}}",

@@ -412,6 +412,8 @@
     "refresh": "Refresh conditions",
     "marineWarning": "Marine warning",
     "useMyLocation": "Use my location",
+    "nearestBeach": "Closest beach to you",
+    "nearestBeachDistance": "Closest beach to you · {{distance}} km",
     "viewFullDetails": "View full details",
     "bestTime": "Best time: {{time}}",
     "source": "Source: {{source}}",

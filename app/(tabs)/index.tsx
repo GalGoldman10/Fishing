@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -92,6 +92,17 @@ export default function HomeScreen() {
 
   const marine = useMarineForecast(selectedSpot);
 
+  // Distance to the auto-selected nearest spot (not shown when the user tapped a pin)
+  const nearestDistanceKm = useMemo(() => {
+    if (!userLocation || !selectedSpot || selectedSpotId) return null;
+    return haversineKm(
+      userLocation.latitude,
+      userLocation.longitude,
+      selectedSpot.latitude,
+      selectedSpot.longitude,
+    );
+  }, [userLocation, selectedSpot, selectedSpotId]);
+
   const { data: selectedDetails } = useQuery({
     queryKey: ['spotDetails', selectedSpot?.id],
     enabled: !!selectedSpot,
@@ -135,6 +146,34 @@ export default function HomeScreen() {
       setLocating(false);
     }
   }, [t, refetchSpots]);
+
+  // On load, locate the user so sea conditions show the closest beach automatically.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLocating(true);
+        const existing = await Location.getForegroundPermissionsAsync();
+        const status = existing.granted
+          ? existing.status
+          : (await Location.requestForegroundPermissionsAsync()).status;
+        if (status !== 'granted' || cancelled) return;
+
+        const lastKnown = await Location.getLastKnownPositionAsync();
+        const loc = lastKnown ?? (await Location.getCurrentPositionAsync({}));
+        if (cancelled || !loc) return;
+        setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      } catch {
+        // Silent: fall back to the default region until the user taps "Use my location"
+      } finally {
+        if (!cancelled) setLocating(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const askAi = useCallback(
     (question: string) => {
@@ -215,9 +254,20 @@ export default function HomeScreen() {
           {selectedSpot && (
             <View style={styles.selectedRow}>
               <Ionicons name="location" size={16} color={colors.accent} />
-              <Text style={[styles.selectedName, { color: colors.text }]} numberOfLines={1}>
-                {spotName(selectedSpot)}
-              </Text>
+              <View style={styles.selectedNameWrap}>
+                <Text style={[styles.selectedName, { color: colors.text }]} numberOfLines={1}>
+                  {spotName(selectedSpot)}
+                </Text>
+                {nearestDistanceKm != null && (
+                  <Text style={[styles.nearestLabel, { color: colors.accent }]} numberOfLines={1}>
+                    {nearestDistanceKm >= 1
+                      ? t('marine.nearestBeachDistance', {
+                          distance: formatNumber(Math.round(nearestDistanceKm), i18n.language),
+                        })
+                      : t('marine.nearestBeach')}
+                  </Text>
+                )}
+              </View>
               {bestFishingTime && (
                 <Text style={[styles.bestTime, { color: colors.textSecondary }]}>
                   {t('marine.bestTime', { time: formatTime(bestFishingTime, i18n.language) })}
@@ -463,7 +513,9 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.sm,
   },
-  selectedName: { ...typography.h3, flexShrink: 1 },
+  selectedNameWrap: { flexShrink: 1 },
+  selectedName: { ...typography.h3 },
+  nearestLabel: { ...typography.caption, fontWeight: '600' },
   bestTime: { ...typography.caption, marginStart: 'auto' },
   sectionBody: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   skeletonStack: { gap: spacing.sm },
