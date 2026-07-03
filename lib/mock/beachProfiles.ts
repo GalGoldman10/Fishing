@@ -28,7 +28,7 @@ export interface BeachProfile {
 export const BEACH_PROFILES: Record<string, BeachProfile> = {
   'demo-1': {
     spotId: 'demo-1',
-    aliases: ['gordon', 'גורדון', 'gordon beach', 'חוף גורדון', 'tel aviv beach', 'חוף תל אביב', 'frishman', 'פרישמן', 'hilton tel aviv', 'חוף הילטון', 'alma beach', 'חוף עלמה', 'charles clore', 'צ׳ארלס קלור'],
+    aliases: ['gordon', 'גורדון', 'gordon beach', 'חוף גורדון', 'tel aviv beach', 'חוף תל אביב', 'frishman', 'פרישמן', 'hilton tel aviv', 'חוף הילטון', 'alma beach', 'חוף עלמה', 'charles clore', 'צ׳ארלס קלור', 'tel baruch', 'תל ברוך', 'חוף תל ברוך'],
     description: {
       en: 'Central Tel Aviv sandy beach. Wide flat shore, gentle slope. Very popular urban fishing — crowded in summer. Best at dawn before swimmers arrive.',
       he: 'חוף חולי מרכזי בתל אביב. שיפוע עדין, חוף רחב. דיג עירוני פופולרי — עמוס בקיץ. הכי טוב בשחר לפני הרחצה.',

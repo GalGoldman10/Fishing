@@ -22,6 +22,7 @@ export interface QueryUnderstanding {
 const LOCATION_PATTERNS: Array<{ pattern: RegExp; name: string; city?: string }> = [
   { pattern: /palmachim|פלמחים/i, name: 'Palmachim Beach', city: 'Palmachim' },
   { pattern: /gordon|גורדון|frishman|פרישמן|hilton.*tel aviv|חוף הילטון/i, name: 'Gordon Beach', city: 'Tel Aviv' },
+  { pattern: /tel baruch|תל ברוך/i, name: 'Tel Baruch Beach', city: 'Tel Aviv' },
   { pattern: /tel aviv|תל אביב/i, name: 'Tel Aviv coast', city: 'Tel Aviv' },
   { pattern: /bat yam|בת ים/i, name: 'Bat Yam Beach', city: 'Bat Yam' },
   { pattern: /rishon|ראשון/i, name: 'Rishon LeZion Beach', city: 'Rishon LeZion' },

@@ -1,18 +1,59 @@
 /**
- * Build direct, practical fishing answers from local database + filtered web snippets.
- * Fixes the problem of dumping irrelevant Wikipedia text.
+ * Expert answer engine — composes structured, specific fishing answers.
+ *
+ * Every answer follows the expert format: Direct answer → Best setup →
+ * Best technique → Best time and conditions → Fish you can catch →
+ * Extra tips → Sources checked. Content is drawn from the fishing knowledge
+ * base (habitat tactics, bait profiles, species tactics, seasonal behavior),
+ * the verified spot database, and filtered web sources — never generic filler.
+ *
+ * When key information is missing (no location, habitat, bait, or target
+ * fish), the answer asks 1–3 short follow-up questions instead of guessing.
  */
 
-import { getDemoSpotDetails, DEMO_SPECIES, DEMO_CONDITIONS } from '@/lib/mock/demoData';
+import { getDemoSpotDetails, DEMO_CONDITIONS } from '@/lib/mock/demoData';
 import { findSpotFromQuestion, shoreTypeLabel, listKnownBeaches } from '@/lib/research/spotMatcher';
 import { getBeachProfile } from '@/lib/mock/beachProfiles';
 import type { QueryUnderstanding } from '@/lib/research/queryUnderstanding';
+import {
+  HABITAT_TACTICS,
+  SPECIES_TACTICS,
+  SPECIES_ID_TO_TACTICS,
+  detectHabitat,
+  detectBait,
+  detectTargetSpecies,
+  getSeasonalNotes,
+  shoreTypeToHabitat,
+  type HabitatTactics,
+  type Lang,
+  type SpeciesTactics,
+} from '@/lib/research/fishingKnowledge';
 import type {
   EquipmentRecommendation,
   FishRecommendation,
   FishingAnswer,
   FishingSource,
 } from '@/types/research';
+
+// ---------------------------------------------------------------------------
+// Section headers (the required answer structure)
+// ---------------------------------------------------------------------------
+
+const H = {
+  setup: { en: 'Best setup:', he: 'הציוד המומלץ:' },
+  technique: { en: 'Best technique:', he: 'הטכניקה:' },
+  time: { en: 'Best time and conditions:', he: 'זמן ותנאים מומלצים:' },
+  fish: { en: 'Fish you can catch:', he: 'דגים שאפשר לתפוס:' },
+  tips: { en: 'Extra tips:', he: 'טיפים נוספים:' },
+  sources: { en: 'Sources checked:', he: 'מקורות שנבדקו:' },
+  followUp: { en: 'To tailor this exactly, tell me:', he: 'כדי לדייק את התשובה, ספרו לי:' },
+};
+
+const LIKELIHOOD_LABEL: Record<string, { en: string; he: string }> = {
+  high: { en: 'high chance', he: 'סיכוי גבוה' },
+  medium: { en: 'medium chance', he: 'סיכוי בינוני' },
+  low: { en: 'low chance', he: 'סיכוי נמוך' },
+};
 
 function extractRelevantSentences(text: string, question: string, max = 2): string[] {
   const keywords = question
@@ -36,17 +77,174 @@ function extractRelevantSentences(text: string, question: string, max = 2): stri
     .map((s) => s.sentence);
 }
 
+// ---------------------------------------------------------------------------
+// Section builders
+// ---------------------------------------------------------------------------
+
+interface SpotContext {
+  spot: ReturnType<typeof findSpotFromQuestion>;
+  profile: ReturnType<typeof getBeachProfile>;
+  spotName?: string;
+}
+
+function buildSetupSection(
+  habitat: HabitatTactics,
+  lang: Lang,
+  override?: { rod?: string; reel?: string; mainLine?: string; leader?: string; hooks?: string; weights?: string; baits?: string[]; castingTip?: { en: string; he: string } },
+): { text: string; equipment: EquipmentRecommendation } {
+  const isHe = lang === 'he';
+  const s = habitat.setup;
+  const rod = override?.rod ?? s.rod[lang];
+  const reel = override?.reel ?? s.reel[lang];
+  const line = override?.mainLine ?? s.line[lang];
+  const leader = override?.leader ?? s.leader[lang];
+  const hook = override?.hooks ?? s.hook[lang];
+  const bait = override?.baits?.join(', ') ?? s.bait[lang];
+  const sinker = override?.weights;
+
+  const lines = isHe
+    ? [
+        `• חכה: ${rod}`,
+        `• סליל: ${reel}`,
+        `• חוט: ${line}`,
+        `• מוביל: ${leader}`,
+        `• קרס/חסקה: ${hook}`,
+        ...(sinker ? [`• משקולות: ${sinker}`] : []),
+        `• פיתיון: ${bait}`,
+      ]
+    : [
+        `• Rod: ${rod}`,
+        `• Reel: ${reel}`,
+        `• Line: ${line}`,
+        `• Leader: ${leader}`,
+        `• Hook/rig: ${hook}`,
+        ...(sinker ? [`• Sinkers: ${sinker}`] : []),
+        `• Bait: ${bait}`,
+      ];
+
+  return {
+    text: `${H.setup[lang]}\n${lines.join('\n')}`,
+    equipment: {
+      rod,
+      reel,
+      mainLine: line,
+      leader,
+      hookOrLure: hook,
+      sinker,
+      bait,
+      castingMethod: override?.castingTip?.[lang],
+    },
+  };
+}
+
+function buildTechniqueSection(habitat: HabitatTactics, lang: Lang, castingTip?: string): string {
+  const steps = habitat.techniqueSteps.map((step, i) => `${i + 1}. ${step[lang]}`);
+  if (castingTip) steps.push(`${steps.length + 1}. ${castingTip}`);
+  return `${H.technique[lang]}\n${steps.join('\n')}`;
+}
+
+function buildTimeSection(habitat: HabitatTactics, lang: Lang): string {
+  const seasonal = getSeasonalNotes(new Date(), lang);
+  return `${H.time[lang]}\n${habitat.bestTime[lang]}\n${seasonal}`;
+}
+
+function speciesLine(tactics: SpeciesTactics, lang: Lang, likelihood?: string): string {
+  const isHe = lang === 'he';
+  const chance = likelihood ? ` (${LIKELIHOOD_LABEL[likelihood]?.[lang] ?? likelihood})` : '';
+  const bitesLabel = isHe ? 'ניגש ל' : 'bites';
+  const note = tactics.note ? ` ${tactics.note[lang]}` : '';
+  return `• ${tactics.name[lang]}${chance} — ${bitesLabel}: ${tactics.bites[lang]}. ${tactics.where[lang]}.${note}`;
+}
+
+function buildFishSection(
+  speciesKeys: Array<{ key: string; likelihood?: string }>,
+  lang: Lang,
+): { text: string; recommendations: FishRecommendation[] } {
+  const lines: string[] = [];
+  const recommendations: FishRecommendation[] = [];
+  const seen = new Set<string>();
+
+  for (const { key, likelihood } of speciesKeys) {
+    const tactics = SPECIES_TACTICS[key];
+    if (!tactics || seen.has(key)) continue;
+    seen.add(key);
+    lines.push(speciesLine(tactics, lang, likelihood));
+    recommendations.push({
+      commonName: tactics.name[lang],
+      likelihood: (likelihood as FishRecommendation['likelihood']) ?? 'medium',
+      preferredArea: tactics.where[lang],
+      technique: tactics.when[lang],
+      baitOrLure: tactics.bites[lang],
+    });
+  }
+
+  return { text: `${H.fish[lang]}\n${lines.join('\n')}`, recommendations };
+}
+
+function buildTipsSection(habitat: HabitatTactics | undefined, lang: Lang, extra: string[] = []): string | undefined {
+  const tips = [...(habitat?.extraTips.map((t) => t[lang]) ?? []), ...extra].filter(Boolean);
+  if (tips.length === 0) return undefined;
+  return `${H.tips[lang]}\n${tips.map((t) => `• ${t}`).join('\n')}`;
+}
+
+function buildSourcesSection(
+  lang: Lang,
+  sources: FishingSource[],
+  options: { usedSpotDb: boolean; usedConditions: boolean },
+): string {
+  const isHe = lang === 'he';
+  const items: string[] = [];
+  if (options.usedSpotDb) {
+    items.push(isHe ? '• מסד נתוני חופי הדיג של האפליקציה (מיקומים מאומתים)' : '• App fishing-spot database (verified locations)');
+  }
+  items.push(isHe ? '• ידע עונתי והתנהגות דגים בים התיכון הישראלי' : '• Seasonal fish-behavior knowledge for the Israeli Mediterranean');
+  if (options.usedConditions) {
+    items.push(isHe ? '• נתוני ים ומזג אוויר חיים (Open-Meteo)' : '• Live sea and weather data (Open-Meteo)');
+  }
+  const domains = [...new Set(sources.map((s) => s.domain))].slice(0, 4);
+  for (const domain of domains) {
+    items.push(`• ${domain}`);
+  }
+  return `${H.sources[lang]}\n${items.join('\n')}`;
+}
+
+function buildFollowUpQuestions(
+  lang: Lang,
+  missing: { location: boolean; method: boolean; target: boolean },
+): string[] {
+  const isHe = lang === 'he';
+  const questions: string[] = [];
+  if (missing.method) {
+    questions.push(isHe ? 'אתם דגים מהחוף, מסלעים, ממזח או מסירה?' : 'Are you fishing from shore, rocks, a pier, or a boat?');
+  }
+  if (missing.location) {
+    questions.push(isHe ? 'באיזה חוף או עיר אתם דגים?' : 'Which beach or city are you fishing at?');
+  }
+  if (missing.target) {
+    questions.push(isHe ? 'יש דג מסוים שאתם מכוונים אליו?' : 'Are you targeting a specific fish?');
+  }
+  return questions.slice(0, 3);
+}
+
+// ---------------------------------------------------------------------------
+// Main answer builder
+// ---------------------------------------------------------------------------
+
 export interface LocalAnswerResult {
   directAnswer: string;
   species?: FishRecommendation[];
   equipment?: EquipmentRecommendation[];
   safetyWarnings?: string[];
+  followUpQuestions?: string[];
   usedLocalDb: boolean;
+  /** True when the answer is grounded in the knowledge base or verified spot data
+   *  (as opposed to the generic fallback that only asks follow-up questions). */
+  grounded: boolean;
 }
 
 export function buildLocalAnswer(
   question: string,
-  language: 'en' | 'he',
+  language: Lang,
   understanding: QueryUnderstanding,
   sources: FishingSource[],
   locationHint?: string,
@@ -55,162 +253,92 @@ export function buildLocalAnswer(
   const spot = findSpotFromQuestion(question, locationHint ?? understanding.locationName);
   const profile = spot ? getBeachProfile(spot.id) : undefined;
   const spotName = spot
-    ? (spot.localizedNames?.[language] ?? spot.name)
+    ? ((isHe ? spot.localizedNames?.he : undefined) ?? understanding.locationName ?? spot.localizedNames?.[language] ?? spot.name)
     : (understanding.locationName ?? understanding.city);
 
-  const q = question.toLowerCase();
+  const fullText = `${question} ${locationHint ?? ''}`;
+  const habitatKey = spot ? shoreTypeToHabitat(spot.shoreType) : detectHabitat(fullText);
+  const habitat = habitatKey ? HABITAT_TACTICS[habitatKey] : undefined;
+  const bait = detectBait(fullText);
+  const target = detectTargetSpecies(fullText);
+
+  // Intent detection — each question type produces a different answer.
+  const asksTerrain = /rocky or sandy|sandy or rocky|terrain|bottom type|seabed|is .*(rocky|sandy)|חולי או סלעי|סלעי או חולי|קרקעית|האם .*(חולי|סלעי)/i.test(question);
+  const asksSpecies = /catch|species|fish can|target|what.*bite|לתפוס|ללכוד|מינים|מה אפשר|איזה דג|מה כדאי לדוג|מה נתפס/i.test(question);
+  const asksEquipment = /equipment|rod|reel|line|hook|sinker|setup|gear|bring|take|pack|what do i need|ציוד|חכה|סליל|סטאפ|להביא|לקחת|מה צריך|איזה ציוד/i.test(question);
+  const asksBait = /bait|lure|פיתיון|דמוי/i.test(question) || !!bait;
+  const asksRegulations = /regulat|license|licence|legal|תקנ|רישיון|חוק/i.test(question);
+  const asksConditions = /weather|wind|wave|good for fishing|can i fish|worth (going|fishing)|right now|today|tonight|tomorrow|מזג|רוח|גל|מחר|היום|הלילה|הערב|עכשיו|כדאי (לצאת|לדוג)|אפשר לדוג|טוב לדיג|מה דעתך|מה אתה חושב|what do you think|is it good/i.test(question);
+
   const sections: string[] = [];
   let species: FishRecommendation[] | undefined;
   let equipment: EquipmentRecommendation[] | undefined;
   const safetyWarnings: string[] = [];
+  let followUpQuestions: string[] | undefined;
   let usedLocalDb = false;
+  let usedSpotDb = false;
 
-  // Intent detection — each question type produces a different answer.
-  const asksTerrain = /rocky|sandy|sand|rock|terrain|bottom|seabed|חולי|סלע|קרקעית|שטח/i.test(question);
-  const asksSpecies = /catch|species|fish can|target|what.*bite|לכוד|מינים|מה אפשר|איזה דג|מה כדאי לדוג|מה נתפס/i.test(question);
-  const asksEquipment = /equipment|rod|reel|line|hook|sinker|bait|setup|gear|bring|take|pack|what do i need|ציוד|חכה|סליל|פיתיון|סטאפ|להביא|לקחת|מה צריך|איזה ציוד/i.test(question);
-  const asksRegulations = /regulat|license|licence|legal|תקנ|רישיון|חוק/i.test(question);
-  const asksConditions = /weather|wind|wave|good for fishing|worth (going|fishing)|right now|today|tonight|tomorrow|מזג|רוח|גל|מחר|היום|הלילה|הערב|עכשיו|כדאי (לצאת|לדוג)|טוב לדיג|מה דעתך|מה אתה חושב|what do you think|is it good/i.test(question);
+  // Species keys available for the "Fish you can catch" section.
+  const spotSpeciesKeys: Array<{ key: string; likelihood?: string }> =
+    profile?.speciesIds
+      .map((s) => ({ key: SPECIES_ID_TO_TACTICS[s.id], likelihood: s.likelihood as string }))
+      .filter((s) => !!s.key) ?? [];
+  const habitatSpeciesKeys: Array<{ key: string; likelihood?: string }> =
+    habitat?.typicalFish.map((key) => ({ key })) ?? [];
 
-  // --- TERRAIN / SHORE TYPE ---
-  if (asksTerrain) {
-    if (spot) {
-      usedLocalDb = true;
-      const shore = shoreTypeLabel(spot.shoreType, language);
-      const seabed = shoreTypeLabel(spot.seabedType === 'sand' ? 'sandy' : spot.seabedType, language);
-      sections.push(
-        isHe
-          ? `תשובה ישירה: ${spotName} הוא חוף ${shore} עם קרקעית ${seabed}. רמת קושי: ${spot.difficultyLevel === 'easy' ? 'קלה (מתאים למתחילים)' : spot.difficultyLevel}.`
-          : `Quick answer: ${spotName} is a ${shore} shore with a ${seabed} seabed. Difficulty: ${spot.difficultyLevel}${spot.difficultyLevel === 'easy' ? ' (beginner-friendly)' : ''}.`,
-      );
-      if (spot.shoreType === 'rocky' || spot.shoreType === 'cliff') {
-        safetyWarnings.push(
-          isHe ? 'סלעים חלקים כשהם רטובים — נעליים מונעות החלקה חובה.' : 'Rocks are slippery when wet — non-slip shoes essential.',
-        );
-      }
-    } else if (!spotName) {
-      const beaches = listKnownBeaches(language).slice(0, 8).join(language === 'he' ? ', ' : ', ');
-      sections.push(
-        isHe
-          ? `תשובה: ציין שם חוף או עיר. חופים במערכת: ${beaches} ועוד.`
-          : `Quick answer: Please name a specific beach. Beaches in our database include: ${beaches}, and more.`,
-      );
-    }
-  }
+  // ---------------------------------------------------------------------
+  // 1. Direct answer — tailored to the exact question type.
+  // ---------------------------------------------------------------------
 
-  // Beach overview only for questions with no other detected intent
-  const hasSpecificIntent = asksSpecies || asksEquipment || asksRegulations || asksConditions;
-  if (spot && profile && sections.length === 0 && !hasSpecificIntent) {
+  if (asksTerrain && spot) {
     usedLocalDb = true;
-    const desc = profile.description[language];
-    const tip = profile.localTips[language];
+    usedSpotDb = true;
     const shore = shoreTypeLabel(spot.shoreType, language);
+    const seabed = shoreTypeLabel(spot.seabedType === 'sand' ? 'sandy' : spot.seabedType, language);
+    const structure = habitat ? ` ${habitat.structure[language]}` : '';
     sections.push(
       isHe
-        ? `${spotName} — חוף ${shore}.\n\n${desc}\n\nטיפ מקומי: ${tip}`
-        : `${spotName} — ${shore} shore.\n\n${desc}\n\nLocal tip: ${tip}`,
+        ? `תשובה ישירה: ${spotName} הוא חוף ${shore} עם קרקעית ${seabed}.${structure}`
+        : `Direct answer: ${spotName} is a ${shore} shore with a ${seabed} seabed.${structure}`,
     );
-  }
-
-  // --- SPECIES / WHAT TO CATCH ---
-  if (asksSpecies) {
-    if (spot) {
-      usedLocalDb = true;
-      const details = getDemoSpotDetails(spot.id);
-      if (details) {
-        species = details.species.map((s) => ({
-          commonName: s.localizedNames?.[language] ?? s.commonName,
-          localName: s.localizedNames?.he,
-          scientificName: s.scientificName,
-          likelihood: s.likelihood,
-          season: isHe ? 'מרץ–אוקטובר (עונה חמה)' : 'March–October (warm season)',
-          preferredArea: spot.shoreType === 'rocky' ? (isHe ? 'ליד סלעים' : 'Near rocks') : (isHe ? 'אזור חולי רדוד' : 'Shallow sandy zone'),
-          technique: 'surf casting / bottom fishing',
-          baitOrLure: isHe ? 'סרדין, דיונון' : 'sardine, squid',
-        }));
-
-        const list = species
-          .map((s) => `• ${s.commonName} (${s.likelihood}) — ${s.baitOrLure}`)
-          .join('\n');
-
-        sections.push(
-          isHe
-            ? `מה אפשר ללכוד ב${spotName}:\n${list}\n\nטיפ: ${profile?.localTips.he ?? ''}`
-            : `Fish you may catch at ${spotName}:\n${list}\n\nTip: ${profile?.localTips.en ?? ''}`,
-        );
-      }
-    } else {
-      const defaultSpecies = DEMO_SPECIES.slice(0, 4);
-      species = defaultSpecies.map((s) => ({
-        commonName: s.localizedNames?.[language] ?? s.commonName,
-        scientificName: s.scientificName,
-        likelihood: 'medium' as const,
-        season: isHe ? 'אביב–סתיו' : 'Spring–Autumn',
-        baitOrLure: isHe ? 'סרדין, דיונון, שרימפס' : 'sardine, squid, shrimp',
-      }));
-      sections.push(
-        isHe
-          ? `מינים נפוצים בים התיכון (ישראל):\n${species.map((s) => `• ${s.commonName}`).join('\n')}\n\nציין שם חוף לקבלת מידע מדויק יותר.`
-          : `Common Mediterranean species (Israel):\n${species.map((s) => `• ${s.commonName}`).join('\n')}\n\nName a specific beach for location-targeted info.`,
-      );
-      usedLocalDb = true;
-    }
-  }
-
-  // --- EQUIPMENT ---
-  if (asksEquipment) {
-    if (spot) {
-      usedLocalDb = true;
-      const details = getDemoSpotDetails(spot.id);
-      const eq = details?.equipment[0];
-      if (eq?.rodSpecification && eq.reelSpecification) {
-        const rod = eq.rodSpecification;
-        const reel = eq.reelSpecification;
-        const line = eq.lineSpecification;
-        const leader = eq.leaderSpecification;
-        const tackle = eq.terminalTackle;
-        const baits = eq.baitAndLures?.baits as string[] | undefined;
-
-        const eqRec: EquipmentRecommendation = {
-          rod: `${rod.type} ${rod.length}, casting ${rod.castingWeight}`,
-          reel: `${reel.type} size ${reel.size}`,
-          mainLine: String(line?.main ?? ''),
-          leader: leader ? `${leader.material} ${leader.strength}` : undefined,
-          hookOrLure: tackle?.hooks ? String(tackle.hooks) : undefined,
-          sinker: tackle?.weights ? String(tackle.weights) : undefined,
-          bait: baits?.join(', '),
-          castingMethod: spot.shoreType === 'sandy' ? 'long cast beyond breakers' : 'short cast near structure',
-        };
-        equipment = [eqRec];
-
-        sections.push(
-          isHe
-            ? `ציוד מומלץ ל${spotName}:\n• חכה: ${eqRec.rod}\n• סליל: ${eqRec.reel}\n• חוט: ${eqRec.mainLine}\n• מנהיג: ${eqRec.leader}\n• קרסים: ${eqRec.hookOrLure}\n• משקולות: ${eqRec.sinker}\n• פיתיון: ${eqRec.bait}${profile?.equipmentOverride?.castingTip ? `\n• הטלה: ${profile.equipmentOverride.castingTip.he}` : ''}`
-            : `Recommended setup for ${spotName}:\n• Rod: ${eqRec.rod}\n• Reel: ${eqRec.reel}\n• Main line: ${eqRec.mainLine}\n• Leader: ${eqRec.leader}\n• Hooks: ${eqRec.hookOrLure}\n• Sinkers: ${eqRec.sinker}\n• Bait: ${eqRec.bait}${profile?.equipmentOverride?.castingTip ? `\n• Casting: ${profile.equipmentOverride.castingTip.en}` : ''}`,
-        );
-      }
-    } else {
-      sections.push(
-        isHe
-          ? 'ציוד לדיג חוף בינוני (ים תיכון):\n• חכת סרף 3.6–4.2 מ\'\n• סליל ספינינג 5000–6000\n• חוט 0.30–0.35 מ"מ\n• משקולות 120–200 גרם\n• פיתיון: סרדין או דיונון'
-          : 'General Mediterranean shore setup:\n• Surf rod 3.6–4.2m\n• Spinning reel 5000–6000\n• Line 0.30–0.35mm\n• Sinkers 120–200g\n• Bait: sardine or squid',
-      );
-      usedLocalDb = true;
-    }
-  }
-
-  // --- REGULATIONS ---
-  if (asksRegulations) {
-    sections.push(
-      isHe
-        ? 'תקנות דיג בישראל: נדרש רישיון דיג תקף. יש מגבלות גודל ומכסה לפי מין. מינים מוגנים אסורים ללכידה. אשר תמיד עם רשות הטבע והגנים לפני דיג.'
-        : 'Israel fishing regulations: A valid fishing license is required. Size limits and catch quotas apply per species. Protected species must not be kept. Always confirm with the Israel Nature and Parks Authority before fishing.',
-    );
+  } else if (bait && (asksSpecies || asksBait) && !asksEquipment) {
+    // Bait-centric question: "What fish can I catch with squid?"
     usedLocalDb = true;
-  }
-
-  // --- WEATHER / CONDITIONS / "IS IT WORTH GOING NOW" ---
-  if (asksConditions) {
+    const catchNames = bait.catches
+      .map((c) => SPECIES_TACTICS[c.speciesKey]?.name[language])
+      .filter(Boolean)
+      .join(', ');
+    sections.push(
+      isHe
+        ? `תשובה ישירה: עם ${bait.name.he} אפשר לכוון באופן ריאלי ל: ${catchNames}. ${bait.whenBest.he}`
+        : `Direct answer: With ${bait.name.en.toLowerCase()} you can realistically target: ${catchNames}. ${bait.whenBest.en}`,
+    );
+    sections.push(
+      isHe
+        ? `איך לעגן את הפיתיון:\n${bait.howToHook.he}\n\nהחסקה המומלצת:\n${bait.bestRig.he}`
+        : `How to hook it:\n${bait.howToHook.en}\n\nBest rig:\n${bait.bestRig.en}`,
+    );
+    const baitFish = bait.catches.map((c) => {
+      const t = SPECIES_TACTICS[c.speciesKey];
+      return t ? `• ${t.name[language]} — ${c.note[language]}` : '';
+    }).filter(Boolean);
+    sections.push(`${H.fish[language]}\n${baitFish.join('\n')}`);
+    species = bait.catches.reduce<FishRecommendation[]>((acc, c) => {
+      const t = SPECIES_TACTICS[c.speciesKey];
+      if (t) {
+        acc.push({
+          commonName: t.name[language],
+          likelihood: 'medium',
+          preferredArea: t.where[language],
+          baitOrLure: c.note[language],
+        });
+      }
+      return acc;
+    }, []);
+    const baitTips = buildTipsSection(habitat, language, bait.tips.map((t) => t[language]));
+    if (baitTips) sections.push(baitTips);
+  } else if (asksConditions) {
+    usedLocalDb = true;
     const c = DEMO_CONDITIONS;
     const conditionsSummary = c.localizedSummary?.[language] ?? c.summary;
     const spotIntro = spot
@@ -220,48 +348,147 @@ export function buildLocalAnswer(
       : '';
     sections.push(
       isHe
-        ? `${spotIntro}תנאים נוכחיים (הדגמה): ${conditionsSummary} רוח ${c.windSpeed} קמ"ש מ${c.windDirection}, גלים ~${c.waveHeight}מ'. התאמה: ${c.suitability === 'good' ? 'טובה' : 'בינונית'}. בדוק תחזית עדכנית לפני יציאה.`
-        : `${spotIntro}Current conditions (demo): ${conditionsSummary} Wind ${c.windSpeed} km/h ${c.windDirection}, waves ~${c.waveHeight}m. Suitability: ${c.suitability}. Check live forecast before going.`,
+        ? `${spotIntro}תנאים נוכחיים (הדגמה): ${conditionsSummary} רוח ${c.windSpeed} קמ"ש מ${c.windDirection}, גלים ~${c.waveHeight}מ'. בדקו את כרטיס תנאי הים באפליקציה לנתונים חיים.`
+        : `${spotIntro}Current conditions (demo): ${conditionsSummary} Wind ${c.windSpeed} km/h ${c.windDirection}, waves ~${c.waveHeight}m. Check the live sea-conditions card in the app for real-time data.`,
     );
-    if (spot && profile) {
-      const tip = profile.localTips[language];
-      sections.push(isHe ? `טיפ מקומי ל${spotName}: ${tip}` : `Local tip for ${spotName}: ${tip}`);
+    if (habitat) {
+      sections.push(buildTimeSection(habitat, language));
+      usedSpotDb = !!spot;
     }
+  } else if (target && (asksSpecies || /how to|how do i|איך/i.test(question))) {
+    // Species-target question: "How do I catch bream?"
     usedLocalDb = true;
+    sections.push(
+      isHe
+        ? `תשובה ישירה: ${target.name.he} — ${target.bites.he}. איפה: ${target.where.he}. מתי: ${target.when.he}.${target.note ? ` ${target.note.he}` : ''}`
+        : `Direct answer: ${target.name.en} — best baits: ${target.bites.en}. Where: ${target.where.en}. When: ${target.when.en}.${target.note ? ` ${target.note.en}` : ''}`,
+    );
+  } else if (asksEquipment && habitat) {
+    usedLocalDb = true;
+    usedSpotDb = !!spot;
+    const where = spotName ?? (isHe ? `חוף ${shoreTypeLabel(habitatKey!, 'he')}` : `a ${shoreTypeLabel(habitatKey!, 'en')} beach`);
+    sections.push(
+      isHe
+        ? `תשובה ישירה: הנה הסטאפ המדויק ל${where}, כולל למה כל פריט — הפירוט למטה.`
+        : `Direct answer: Here is the exact setup for ${where}, and why each piece matters — details below.`,
+    );
+  } else if (asksSpecies && (spot || habitat)) {
+    usedLocalDb = true;
+    usedSpotDb = !!spot;
+    const keys = spotSpeciesKeys.length > 0 ? spotSpeciesKeys : habitatSpeciesKeys;
+    const names = keys.map((k) => SPECIES_TACTICS[k.key]?.name[language]).filter(Boolean).slice(0, 4).join(', ');
+    sections.push(
+      isHe
+        ? `תשובה ישירה: ב${spotName ?? 'סוג החוף הזה'} הדגים הריאליים הם ${names}. לכל אחד פיתיון וטכניקה משלו — הפירוט למטה.`
+        : `Direct answer: At ${spotName ?? 'this type of shore'}, the realistic targets are ${names}. Each has its own bait and technique — details below.`,
+    );
+  } else if (spot && profile) {
+    // Full spot overview: "Tell me about X beach fishing"
+    usedLocalDb = true;
+    usedSpotDb = true;
+    const shore = shoreTypeLabel(spot.shoreType, language);
+    sections.push(
+      isHe
+        ? `תשובה ישירה: ${spotName} — חוף ${shore}. ${profile.description.he}${habitat ? ` ${habitat.structure.he}` : ''}`
+        : `Direct answer: ${spotName} — ${shore} shore. ${profile.description.en}${habitat ? ` ${habitat.structure.en}` : ''}`,
+    );
+  } else if (habitat) {
+    // Habitat-only question: "What bait should I use from a rocky beach?"
+    usedLocalDb = true;
+    sections.push(
+      isHe
+        ? `תשובה ישירה: ${habitat.structure.he}`
+        : `Direct answer: ${habitat.structure.en}`,
+    );
   }
 
-  // --- BEGINNER / GENERAL LOCATION ---
-  if (sections.length === 0 && spot && profile) {
+  // ---------------------------------------------------------------------
+  // 2. Standard expert sections (setup / technique / time / fish / tips).
+  //    Added whenever we have a habitat context and the question benefits.
+  // ---------------------------------------------------------------------
+
+  const isBaitCentric = !!(bait && (asksSpecies || asksBait) && !asksEquipment);
+  if (habitat && !isBaitCentric && sections.length > 0) {
+    const setup = buildSetupSection(habitat, language, profile?.equipmentOverride);
+    sections.push(setup.text);
+    equipment = [setup.equipment];
+
+    sections.push(buildTechniqueSection(habitat, language, profile?.equipmentOverride?.castingTip?.[language]));
+
+    if (!asksConditions) {
+      sections.push(buildTimeSection(habitat, language));
+    }
+
+    const keys = spotSpeciesKeys.length > 0 ? spotSpeciesKeys : habitatSpeciesKeys;
+    if (keys.length > 0) {
+      const fish = buildFishSection(keys, language);
+      sections.push(fish.text);
+      species = fish.recommendations;
+    }
+
+    const tips = buildTipsSection(habitat, language, profile ? [profile.localTips[language]] : []);
+    if (tips) sections.push(tips);
+
+    for (const warning of habitat.safety) {
+      safetyWarnings.push(warning[language]);
+    }
+    if (profile?.hazardNotes) {
+      safetyWarnings.push(profile.hazardNotes[language]);
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // 3. Regulations — always point to the official source.
+  // ---------------------------------------------------------------------
+
+  if (asksRegulations) {
     usedLocalDb = true;
-    const details = getDemoSpotDetails(spot.id);
-    const shore = shoreTypeLabel(spot.shoreType, language);
-    const speciesList = details?.species
-      .slice(0, 3)
-      .map((s) => s.localizedNames?.[language] ?? s.commonName)
-      .join(', ');
+    sections.push(
+      isHe
+        ? 'תקנות דיג בישראל: נדרש רישיון דיג תקף. קיימות מגבלות אורך מינימום ומכסה לפי מין, ומינים מוגנים (כמו לוקוס/דקר) אסורים ללכידה. המקור הרשמי והמעודכן: רשות הטבע והגנים — parks.org.il.'
+        : 'Israel fishing regulations: a valid fishing license is required. Minimum-size limits and quotas apply per species, and protected species (like dusky grouper) must be released. The official, current source: Israel Nature and Parks Authority — parks.org.il.',
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // 4. Follow-up questions when we could not tailor the answer.
+  // ---------------------------------------------------------------------
+
+  const grounded = sections.length > 0;
+
+  if (sections.length === 0) {
+    usedLocalDb = true;
+    followUpQuestions = buildFollowUpQuestions(language, {
+      location: !spot && !understanding.locationName,
+      method: !habitat,
+      target: !target && !bait,
+    });
+
+    const universal = isHe
+      ? 'בינתיים, עצה שעובדת כמעט תמיד בים התיכון: שרימפס טרי על חסקת ריצה קלה תופס כמעט כל דג, והשעות החזקות הן סביב הזריחה והשקיעה.'
+      : 'Meanwhile, advice that almost always works on the Mediterranean: fresh shrimp on a light running rig catches nearly everything, and the strongest hours are around sunrise and sunset.';
+    const seasonal = getSeasonalNotes(new Date(), language);
+    const beaches = listKnownBeaches(language).slice(0, 6).join(', ');
 
     sections.push(
       isHe
-        ? `${spotName} — חוף ${shore}, קרקעית ${spot.seabedType}.\n${profile.description.he}\nמינים עיקריים: ${speciesList}.\n${profile.localTips.he}`
-        : `${spotName} — ${shore} shore, ${spot.seabedType} seabed.\n${profile.description.en}\nMain species: ${speciesList}.\n${profile.localTips.en}`,
+        ? `${universal}\n\n${seasonal}\n\n${H.followUp.he}\n${followUpQuestions.map((q) => `• ${q}`).join('\n')}\n\nחופים שאני מכיר לעומק: ${beaches} ועוד.`
+        : `${universal}\n\n${seasonal}\n\n${H.followUp.en}\n${followUpQuestions.map((q) => `• ${q}`).join('\n')}\n\nBeaches I know in depth: ${beaches}, and more.`,
     );
-  } else if (sections.length === 0 && spot) {
-    usedLocalDb = true;
-    const details = getDemoSpotDetails(spot.id);
-    const shore = shoreTypeLabel(spot.shoreType, language);
-    const speciesList = details?.species
-      .slice(0, 3)
-      .map((s) => s.localizedNames?.[language] ?? s.commonName)
-      .join(', ');
-
+  } else if (!spot && !understanding.locationName && (asksEquipment || asksSpecies || asksBait) && !isBaitCentric) {
+    // We answered from habitat knowledge, but a location would sharpen it.
+    followUpQuestions = buildFollowUpQuestions(language, { location: true, method: false, target: false });
     sections.push(
       isHe
-        ? `${spotName} — חוף ${shore}, קרקעית ${spot.seabedType}. מינים עיקריים: ${speciesList}. שיטות: הטלה מהחוף, דיג תחתית. ${spot.difficultyLevel === 'easy' ? 'מתאים למתחילים.' : 'דורש ניסיון.'}`
-        : `${spotName} — ${shore} shore, ${spot.seabedType} seabed. Main species: ${speciesList}. Methods: surf casting, bottom fishing. ${spot.difficultyLevel === 'easy' ? 'Beginner-friendly.' : 'Requires experience.'}`,
+        ? `${H.followUp.he}\n${followUpQuestions.map((q) => `• ${q}`).join('\n')}`
+        : `${H.followUp.en}\n${followUpQuestions.map((q) => `• ${q}`).join('\n')}`,
     );
   }
 
-  // Add filtered web supplement (only relevant sentences)
+  // ---------------------------------------------------------------------
+  // 5. Web supplement + sources checked.
+  // ---------------------------------------------------------------------
+
   const webExtra: string[] = [];
   for (const src of sources.slice(0, 3)) {
     const relevant = extractRelevantSentences(src.snippet, question, 1);
@@ -271,37 +498,28 @@ export function buildLocalAnswer(
       }
     }
   }
-
   if (webExtra.length > 0) {
     sections.push(
-      isHe
-        ? `ממקורות נוספים:\n${webExtra.join('\n')}`
-        : `From additional sources:\n${webExtra.join('\n')}`,
+      isHe ? `ממקורות נוספים:\n${webExtra.join('\n')}` : `From additional sources:\n${webExtra.join('\n')}`,
     );
   }
 
-  if (sections.length === 0) {
-    const sample = listKnownBeaches(language).slice(0, 6).join(', ');
-    return {
-      directAnswer: isHe
-        ? `לא זיהיתי את החוף בשאלה. נסה לציין שם מדויק, למשל:\n• חוף פלמחים — מה אפשר ללכוד?\n• האם חוף גורדון חולי?\n• איזה ציוד לדיג בחיפה?\n\nחופים במערכת: ${sample} ועוד.`
-        : `I could not identify the beach in your question. Try a specific name, for example:\n• What can I catch at Palmachim beach?\n• Is Gordon beach sandy or rocky?\n• What equipment for fishing in Haifa?\n\nBeaches in our database: ${sample}, and more.`,
-      usedLocalDb: false,
-    };
-  }
-
-  const disclaimer = isHe
-    ? '\n\n⚠️ נתוני הדגמה + מקורות רשת — אשר במקום לפני דיג.'
-    : '\n\n⚠️ Demo data + web sources — verify on site before fishing.';
+  sections.push(buildSourcesSection(language, sources, { usedSpotDb, usedConditions: asksConditions }));
 
   return {
-    directAnswer: sections.join('\n\n') + disclaimer,
+    directAnswer: sections.join('\n\n'),
     species,
     equipment,
     safetyWarnings,
+    followUpQuestions,
     usedLocalDb,
+    grounded,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Enrichment entry point used by the orchestrator
+// ---------------------------------------------------------------------------
 
 export function enrichAnswerWithLocalKnowledge(
   answer: FishingAnswer,
@@ -320,12 +538,14 @@ export function enrichAnswerWithLocalKnowledge(
       species: local.species ?? answer.species,
       equipment: local.equipment ?? answer.equipment,
       safetyWarnings: [...(local.safetyWarnings ?? []), ...(answer.safetyWarnings ?? [])],
-      confidence: local.usedLocalDb ? (answer.sources.length >= 2 ? 'medium' : 'medium') : answer.confidence,
-      confidenceReason: local.usedLocalDb
+      confidence: local.grounded || answer.sources.length > 0 ? 'medium' : 'limited',
+      confidenceReason: local.grounded
         ? answer.language === 'he'
-          ? 'תשובה מבוססת מסד נתוני דיג + מקורות רשת.'
-          : 'Answer based on fishing database + web sources.'
-        : answer.confidenceReason,
+          ? 'תשובה מבוססת ידע דיג מקצועי + מסד נתונים מקומי + מקורות רשת.'
+          : 'Answer based on expert fishing knowledge + local database + web sources.'
+        : answer.language === 'he'
+          ? 'חסר מידע מדויק לשאלה הזו — נדרשים פרטים נוספים או מקורות חיים.'
+          : 'Precise information for this question is missing — more details or live sources are needed.',
     };
   }
 
