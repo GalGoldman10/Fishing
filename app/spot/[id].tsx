@@ -10,6 +10,7 @@ import { SectionCard, Chip, InfoRow } from '@/components/common/SectionCard';
 import { LoadingState, ErrorState } from '@/components/common/StateViews';
 import { MarineConditionsCard } from '@/components/marine/MarineConditionsCard';
 import { MarineTimeline } from '@/components/marine/MarineTimeline';
+import { FishingMethodsCard } from '@/components/marine/FishingMethodsCard';
 import { useMarineForecast } from '@/features/marine/useMarineForecast';
 import { getSpotById } from '@/features/spots/spotService';
 import { submitPinReport } from '@/features/spots/pinReportService';
@@ -228,6 +229,7 @@ export default function SpotDetailScreen() {
                 onRefresh={() => void marine.refresh()}
                 refreshing={marine.refreshing}
               />
+              <FishingMethodsCard conditions={marine.data.current} />
               <MarineTimeline hourly={marine.data.hourly} />
             </View>
           )}

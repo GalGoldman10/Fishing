@@ -23,12 +23,23 @@ interface Props {
   compact?: boolean;
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, degrees }: { label: string; value: string; degrees?: number }) {
   const { colors } = useTheme();
   return (
     <View style={styles.metric}>
       <Text style={[styles.metricLabel, { color: colors.textMuted }]}>{label}</Text>
-      <Text style={[styles.metricValue, { color: colors.text }]}>{value}</Text>
+      <View style={styles.metricValueRow}>
+        {degrees !== undefined && (
+          <Ionicons
+            name="arrow-up"
+            size={13}
+            color={colors.accent}
+            // Meteorological direction is where it comes FROM; +180 points where it flows TO.
+            style={{ transform: [{ rotate: `${(degrees + 180) % 360}deg` }] }}
+          />
+        )}
+        <Text style={[styles.metricValue, { color: colors.text }]}>{value}</Text>
+      </View>
     </View>
   );
 }
@@ -43,9 +54,9 @@ export function MarineConditionsCard({ conditions, onRefresh, refreshing, compac
   // Only fields the provider actually returned are rendered — nothing is invented.
   const metrics = useMemo(() => {
     const c = conditions;
-    const rows: { key: string; label: string; value: string }[] = [];
-    const push = (key: string, label: string, value: string | undefined) => {
-      if (value !== undefined) rows.push({ key, label, value });
+    const rows: { key: string; label: string; value: string; degrees?: number }[] = [];
+    const push = (key: string, label: string, value: string | undefined, degrees?: number) => {
+      if (value !== undefined) rows.push({ key, label, value, degrees });
     };
     const num = (v: number | undefined, unit: string, digits = 1) =>
       v === undefined ? undefined : `${formatNumber(v, lang, { maximumFractionDigits: digits })} ${unit}`;
@@ -57,6 +68,7 @@ export function MarineConditionsCard({ conditions, onRefresh, refreshing, compac
       'swellDirection',
       t('marine.swellDirection'),
       c.swellDirectionDegrees === undefined ? undefined : degreesToCompass(c.swellDirectionDegrees, t),
+      c.swellDirectionDegrees,
     );
     push('swellPeriod', t('marine.swellPeriod'), num(c.swellPeriodSeconds, t('units.s'), 0));
     push('windSpeed', t('marine.wind'), num(c.windSpeedKph, t('units.kmh'), 0));
@@ -65,6 +77,7 @@ export function MarineConditionsCard({ conditions, onRefresh, refreshing, compac
       'windDirection',
       t('marine.windDirection'),
       c.windDirectionDegrees === undefined ? undefined : degreesToCompass(c.windDirectionDegrees, t),
+      c.windDirectionDegrees,
     );
     push('seaTemp', t('marine.waterTemperature'), num(c.seaTemperatureCelsius, t('units.celsius')));
     push('airTemp', t('marine.airTemperature'), num(c.airTemperatureCelsius, t('units.celsius')));
@@ -142,7 +155,7 @@ export function MarineConditionsCard({ conditions, onRefresh, refreshing, compac
       {!compact && (
         <View style={styles.metricsGrid}>
           {metrics.map((m) => (
-            <Metric key={m.key} label={m.label} value={m.value} />
+            <Metric key={m.key} label={m.label} value={m.value} degrees={m.degrees} />
           ))}
         </View>
       )}
@@ -225,6 +238,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   metricLabel: { ...typography.caption },
+  metricValueRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metricValue: { ...typography.bodySmall, fontWeight: '700' },
   footerRow: {
     flexDirection: 'row',

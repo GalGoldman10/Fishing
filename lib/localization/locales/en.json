@@ -457,6 +457,54 @@
       "e": "E", "ese": "ESE", "se": "SE", "sse": "SSE",
       "s": "S", "ssw": "SSW", "sw": "SW", "wsw": "WSW",
       "w": "W", "wnw": "WNW", "nw": "NW", "nnw": "NNW"
+    },
+    "methodsTitle": "Fishing method readiness",
+    "methods": {
+      "shore": "Surf casting",
+      "drone": "Drone fishing",
+      "boat": "Boat / kayak"
+    },
+    "methodRatings": {
+      "good": "Good",
+      "caution": "Caution",
+      "bad": "Not suitable",
+      "unknown": "No data"
+    },
+    "methodReasons": {
+      "shoreGood": "Waves and wind allow comfortable surf casting.",
+      "shoreCaution": "Waves or wind will make casting harder.",
+      "shoreBad": "Waves too high for safe shore fishing.",
+      "droneGood": "Wind is light enough for a fishing drone.",
+      "droneCaution": "Gusty — fly the drone with care.",
+      "droneBad": "Wind too strong to fly a fishing drone.",
+      "boatGood": "Comfortable swell for a boat or kayak.",
+      "boatCaution": "Choppy sea — expect an uncomfortable ride.",
+      "boatBad": "Swell too high for a small vessel.",
+      "noData": "Not enough data for this method."
+    },
+    "sinkerLabel": "Recommended sinker",
+    "sinkers": {
+      "lightSinker": "Light lead (30–60 g)",
+      "mediumSinker": "Medium lead (60–100 g)",
+      "heavySinker": "Heavy lead (100–150 g)",
+      "spiderSinker": "Spider / grip sinker — strong drift",
+      "unknown": "No drift data"
+    },
+    "moonLabel": "Moon phase",
+    "moonPhases": {
+      "newMoon": "New moon",
+      "waxingCrescent": "Waxing crescent",
+      "firstQuarter": "First quarter",
+      "waxingGibbous": "Waxing gibbous",
+      "fullMoon": "Full moon",
+      "waningGibbous": "Waning gibbous",
+      "lastQuarter": "Last quarter",
+      "waningCrescent": "Waning crescent"
+    },
+    "moonActivity": {
+      "high": "high fish activity expected",
+      "medium": "moderate fish activity",
+      "low": "lower fish activity"
     }
   },
   "marineLoading": {
