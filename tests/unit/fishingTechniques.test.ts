@@ -110,6 +110,13 @@ describe('required test questions (Hebrew)', () => {
     expect(r.directAnswer).toMatch(/אני מניח שהתכוונת|ז'?ירז'ור|ג'?רג/i);
     expect(r.directAnswer).toContain('תשובה ישירה:');
   });
+
+  it('lists fishing methods in Hebrew', () => {
+    const r = ask('אתה יכול לרשום לי שיטות דייג?', 'he');
+    expect(r.directAnswer).toContain('תשובה ישירה:');
+    expect(r.directAnswer).toMatch(/ג'?רג|ז'?ירז|פטרנוסטר|ג'?יג|צף|סרף/);
+    expect(r.directAnswer).not.toMatch(/קיץ.*בוקר/);
+  });
 });
 
 describe('anti-generic rule', () => {

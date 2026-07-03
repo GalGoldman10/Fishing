@@ -6,6 +6,50 @@ import type { TechniqueTopic } from './types';
 
 export const BASIC_SKILL_TOPICS: TechniqueTopic[] = [
   {
+    id: 'fishing-methods-overview',
+    patterns: [
+      /list.*(fishing )?(method|technique|style)|fishing methods|types of fishing|kinds of fishing|what are the (main )?(fishing )?(method|technique)/i,
+      /שיטות דיג|שיטות דייג|רשום.*שיט|רשימ.*שיט|אילו שיטות|מה השיטות|תרשום.*שיט|תוכל.*רשום.*שיט/i,
+    ],
+    name: { en: 'Fishing methods overview', he: 'שיטות דיג' },
+    category: 'skill',
+    questionClasses: ['technique', 'beginner'],
+    directAnswer: {
+      en: 'The main shore fishing methods in Israel are: (1) Jarjour/spinning with artificial lures, (2) natural-bait bottom fishing with rigs, (3) surf casting on wide sandy beaches, (4) shore jigging with metal jigs, (5) float fishing from piers and rocks, and (6) light lure work at dawn/dusk on breakwaters. Pick one method first — ask me about any for gear and step-by-step technique.',
+      he: 'שיטות הדיג העיקריות מהחוף בישראל: (1) ג\'רג\'ור/ז\'ירז\'ור עם דמויים, (2) דיג תחתית עם פיתיון טבעי וריגים, (3) הטלת סרף בחופים חוליים, (4) ג\'יגינג מהחוף עם ג\'יג מתכת, (5) דיג עם צף ממזחים וסלעים, (6) דיג קל עם דמויים בשחר/דמדומים על שוברים. בחרו שיטה אחת להתחיל — שאלו אותי על כל אחת לציוד וטכניקה צעד-אחר-צעד.',
+    },
+    steps: [
+      {
+        en: 'Jarjour (spinning): light rod 5–25g, small reel, quality braid + fluoro leader, minnow/jig/topwater — hundreds of retrieves per session. Best for predators: bass, bluefish, barracuda, sargo.',
+        he: 'ג\'רג\'ור (ז\'ירז\'ור): מקל light 5–25 גרם, סליל קטן, בד איכותי + מוביל פלואורו, minnow/jig/topwater — מאות הובלות ביציאה. מתאים לטורפים: לוקוס, גומבר, ברקודה, סרגוס.',
+      },
+      {
+        en: 'Natural bait bottom fishing: surf or medium rod, paternoster or running-sinker rig, shrimp/squid/worms. Best on sandy and mixed shores for bream, mullet, grouper (release protected species).',
+        he: 'דיג תחתית עם פיתיון: חכת סרף או בינונית, ריג פטרנוסטר או ריצה, שרימפס/דיונון/תולעים. מתאים לחול ומעורב — דניס, בורי, לוקוס (שחררו מינים מוגנים).',
+      },
+      {
+        en: 'Surf casting: long rod 3.6–4.5m, heavy sinker 100–150g, cast beyond the first bar on wide beaches.',
+        he: 'הטלת סרף: חכה ארוכה 3.6–4.5 מ\', משקולת 100–150 גרם, הטלה מעבר לשבר הראשון בחופים רחבים.',
+      },
+      {
+        en: 'Shore jigging: medium rod, metal jig, lift-and-drop retrieve — strikes often on the fall.',
+        he: 'ג\'יגינג מהחוף: מקל בינוני, ג\'יג מתכת, הרמה-הורדה — נגיעות לרוב בנפילה.',
+      },
+      {
+        en: 'Float fishing: fixed or sliding float, live or dead bait — excellent from piers and rocky coves.',
+        he: 'דיג עם צף: צף קבוע או מחליק, פיתיון חי או מת — מצוין ממזחים ומפרצונים סלעיים.',
+      },
+    ],
+    setup: {
+      en: 'Beginner starter path: pick ONE method. For all-round shore start with natural bait + paternoster; for active fishing try jarjour with one light rod and 2–3 lures.',
+      he: 'מסלול מתחילים: בחרו שיטה אחת. לדיג כללי מהחוף — פיתיון טבעי + פטרנוסטר; לדיג אקטיבי — ג\'רג\'ור עם מקל light ו-2–3 דמויים.',
+    },
+    beginnerNote: {
+      en: 'Ask follow-ups like "how do I start jarjour?" or "what rig for shrimp on a rocky beach?" — I\'ll give full setup and steps.',
+      he: 'שאלו המשך כמו "איך מתחילים ג\'רג\'ור?" או "איזה ריג לשרימפס בחוף סלעי?" — אתן ציוד מלא ושלבים.',
+    },
+  },
+  {
     id: 'cast-better',
     patterns: [/cast better|how to cast|improve.*cast|casting distance|surf cast|הטלה|איך להטיל|להטיל טוב/i],
     name: { en: 'Surf casting', he: 'הטלת סרף' },
