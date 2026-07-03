@@ -146,5 +146,17 @@ export function selectDiverseSources(sources: FishingSource[], minCount = 3, max
     usedDomains.add(s.domain);
   }
 
-  return selected.length >= minCount ? selected : sources.slice(0, Math.max(minCount, maxCount));
+  if (selected.length >= minCount) return selected;
+
+  // Fallback: top sources deduplicated by URL (never repeat the same page).
+  const seenUrls = new Set<string>();
+  const fallback: FishingSource[] = [];
+  for (const s of sources) {
+    if (fallback.length >= Math.max(minCount, maxCount)) break;
+    const key = s.url || s.title;
+    if (seenUrls.has(key)) continue;
+    seenUrls.add(key);
+    fallback.push(s);
+  }
+  return fallback;
 }

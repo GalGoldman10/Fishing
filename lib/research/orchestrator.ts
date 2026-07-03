@@ -1,5 +1,15 @@
 /**
- * Research orchestrator — multi-query parallel search with deduplication and scoring.
+ * Research orchestrator — search-before-answer pipeline.
+ *
+ * Every fishing question flows through: scope guard → query understanding →
+ * location resolution (coordinates, HE/EN, misspellings) → multi-query
+ * multi-provider search → sanitization (untrusted content) → relevance filter
+ * → dedup → scoring → diverse selection → synthesis → local-knowledge
+ * enrichment → live marine conditions (for current-condition questions).
+ *
+ * Failure policy: when search providers fail the answer says so explicitly
+ * (searchFailed=true, limited confidence) — the bot never silently answers
+ * time-sensitive questions from memory.
  */
 
 import type {
@@ -17,6 +27,10 @@ import { groupDuplicates } from '@/lib/research/duplicateDetection';
 import { scoreAndRankSources, selectDiverseSources } from '@/lib/research/sourceScoring';
 import { synthesizeAnswer } from '@/lib/research/answerSynthesis';
 import { enrichAnswerWithLocalKnowledge } from '@/lib/research/localAnswerEngine';
+import { resolveLocation } from '@/lib/research/locationResolver';
+import { sanitizeWebContent, isSafeUrl } from '@/lib/research/contentSanitizer';
+import { getCachedResearch, researchCacheKey, setCachedResearch } from '@/lib/research/researchCache';
+import { getLiveConditionsAdvice } from '@/lib/research/conditionsAdvisor';
 import type { FishingSearchProvider } from '@/lib/research/providers/types';
 import { wikipediaProvider } from '@/lib/research/providers/wikipedia';
 import { israeliSourcesProvider } from '@/lib/research/providers/israeliSources';
@@ -25,6 +39,14 @@ export interface OrchestratorOptions {
   providers?: FishingSearchProvider[];
   minSources?: number;
   maxSources?: number;
+  /** Bypass the research cache (manual refresh). */
+  skipCache?: boolean;
+}
+
+function liveDataUnavailableNote(language: 'en' | 'he'): string {
+  return language === 'he'
+    ? 'לא הצלחתי לאחזר מידע חי מהאינטרנט כרגע. ההנחיות הבאות הן כלליות בלבד ואינן משקפות תנאים או תקנות עדכניים — נסה שוב בעוד רגע.'
+    : 'I could not retrieve live information from the web right now. The guidance below is general only and does not reflect current conditions or regulations — please try again shortly.';
 }
 
 export async function runFishingResearch(
@@ -37,6 +59,7 @@ export async function runFishingResearch(
   const minSources = options.minSources ?? 3;
   const maxSources = options.maxSources ?? 8;
 
+  // 1. Topic restriction — refuse non-fishing questions politely.
   const scope = validateFishingScope(input.question, language);
   if (!scope.allowed) {
     const refusal: FishingAnswer = {
@@ -54,25 +77,44 @@ export async function runFishingResearch(
       refused: true,
       refusalReason: scope.reason,
     };
-    return {
-      answer: refusal,
-      rawResultCount: 0,
-      uniqueSourceCount: 0,
-      duplicateFamiliesFiltered: 0,
-    };
+    return { answer: refusal, rawResultCount: 0, uniqueSourceCount: 0, duplicateFamiliesFiltered: 0 };
   }
 
+  // 2. Understand the question and resolve the location to real coordinates.
   const understanding = understandQuery(input.question, language, input.locationHint);
+  const resolved = resolveLocation(input.question, input.locationHint);
+  if (resolved) {
+    understanding.locationName = language === 'he' ? resolved.nameHe : resolved.nameEn;
+    understanding.city = resolved.city ?? understanding.city;
+    understanding.isIsraeliLocation = true;
+    understanding.country = 'IL';
+  }
+
+  // 3. Cache lookup (query + location + language + day + category).
+  const cacheKey = researchCacheKey({
+    question: input.question,
+    language,
+    category: understanding.category,
+    locationId: resolved?.id,
+  });
+  if (!options.skipCache) {
+    const cached = getCachedResearch<ResearchOrchestratorOutput>(cacheKey);
+    if (cached) {
+      return { ...cached, answer: { ...cached.answer, fromCache: true } };
+    }
+  }
+
+  // 4. Multi-query, multi-provider search. Track failures explicitly.
   const searchQueries = generateSearchQueries(input.question, understanding, language);
   const providersUsed = providers.map((p) => p.name);
+  let failedTasks = 0;
 
-  // Run all queries across all providers in parallel
   const searchTasks = searchQueries.flatMap((sq) =>
     providers.map(async (provider) => {
       try {
-        const results = await provider.search(sq);
-        return results;
+        return await provider.search(sq);
       } catch {
+        failedTasks += 1;
         return [] as RawSearchResult[];
       }
     }),
@@ -81,16 +123,26 @@ export async function runFishingResearch(
   const settled = await Promise.allSettled(searchTasks);
   const allRaw: RawSearchResult[] = [];
   for (const result of settled) {
-    if (result.status === 'fulfilled') {
-      allRaw.push(...result.value);
-    }
+    if (result.status === 'fulfilled') allRaw.push(...result.value);
+  }
+  const allSearchesFailed = failedTasks === searchTasks.length && searchTasks.length > 0;
+
+  // 5. Sanitize — web text is untrusted data, never instructions.
+  const sanitized: RawSearchResult[] = [];
+  for (const raw of allRaw) {
+    if (!isSafeUrl(raw.url)) continue;
+    const clean = sanitizeWebContent(raw.title, raw.snippet);
+    if (clean.snippet.length < 15 && clean.title.length < 5) continue;
+    sanitized.push({ ...raw, title: clean.title, snippet: clean.snippet });
   }
 
-  const relevant = filterByRelevance(allRaw, language, 70);
+  // 6. Relevance filter → dedup → score → diverse selection.
+  const relevant = filterByRelevance(sanitized, language, 70);
   const { unique, filteredCount } = groupDuplicates(relevant);
   const scored = scoreAndRankSources(unique, understanding, language, now);
   const diverse = selectDiverseSources(scored, Math.min(minSources, unique.length), maxSources);
 
+  // 7. Synthesize the evidence-based answer.
   const answer = synthesizeAnswer({
     question: input.question,
     language,
@@ -101,6 +153,7 @@ export async function runFishingResearch(
     generatedAt: now,
   });
 
+  // 8. Local verified knowledge (species profiles, demo spot data).
   const enriched = enrichAnswerWithLocalKnowledge(
     answer,
     input.question,
@@ -108,12 +161,67 @@ export async function runFishingResearch(
     input.locationHint,
   );
 
-  return {
+  // 9. Live marine conditions for current-condition questions with a
+  //    resolved coastal/lake location — real data, explained, never invented.
+  if (understanding.needsWeather && resolved) {
+    try {
+      const advice = await getLiveConditionsAdvice(resolved, language);
+      enriched.conditions = advice.conditions;
+      enriched.directAnswer = `${advice.explanation}\n\n${enriched.directAnswer}`;
+      enriched.summary = enriched.directAnswer;
+      if (advice.current.safetyWarnings.length > 0) {
+        enriched.safetyWarnings = [
+          ...(enriched.safetyWarnings ?? []),
+          language === 'he'
+            ? 'קיימות אזהרות ים פעילות למיקום הזה — בדוק את כרטיס תנאי הים לפני יציאה.'
+            : 'Active marine warnings exist for this location — check the sea-conditions card before heading out.',
+        ];
+      }
+    } catch {
+      enriched.conditions = {
+        summary:
+          language === 'he'
+            ? 'נתוני ים חיים אינם זמינים כרגע — לא ניתן לאשר תנאים עדכניים.'
+            : 'Live marine data is unavailable right now — current conditions could not be verified.',
+        isLive: false,
+        suitability: 'unknown',
+        retrievedAt: now,
+      };
+    }
+  }
+
+  // 10. Location coordinates from the validated gazetteer (never text-only pins).
+  if (resolved && enriched.location) {
+    enriched.location.latitude = resolved.latitude;
+    enriched.location.longitude = resolved.longitude;
+    enriched.location.waterType = resolved.waterType;
+  }
+
+  // 11. Search failure policy — say it, downgrade confidence, offer retry.
+  if (allSearchesFailed) {
+    enriched.searchFailed = true;
+    enriched.confidence = 'limited';
+    enriched.confidenceReason =
+      language === 'he'
+        ? 'שירותי החיפוש נכשלו — לא אוחזר מידע חי.'
+        : 'Search services failed — no live information was retrieved.';
+    enriched.directAnswer = `${liveDataUnavailableNote(language)}\n\n${enriched.directAnswer}`;
+    enriched.summary = enriched.directAnswer;
+  }
+
+  const output: ResearchOrchestratorOutput = {
     answer: enriched,
     rawResultCount: allRaw.length,
     uniqueSourceCount: diverse.length,
     duplicateFamiliesFiltered: filteredCount,
   };
+
+  // Do not cache failures.
+  if (!allSearchesFailed) {
+    setCachedResearch(cacheKey, understanding.category, output);
+  }
+
+  return output;
 }
 
 export function sourcesToLegacyFormat(sources: FishingSource[]): Array<{

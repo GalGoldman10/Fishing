@@ -44,7 +44,7 @@ const LOCATION_PATTERNS: Array<{ pattern: RegExp; name: string; city?: string }>
 function detectCategory(question: string, language: 'en' | 'he'): FishingSearchCategory {
   const q = question.toLowerCase();
 
-  if (/regulat|license|licence|תקנ|רישיון|מינימום|protected|מוגן/i.test(question)) return 'regulation';
+  if (/regulat|license|licence|legal|minimum.*(size|length)|size limit|can i keep|תקנ|רישיון|מינימום|חוקי|מותר להשאיר|protected|מוגן/i.test(question)) return 'regulation';
   if (/equipment|rod|reel|line|hook|sinker|ציוד|חכה|סליל|קרס|משקולת/i.test(question)) return 'equipment';
   if (/species|catch|identify|לכוד|מין|זהה|דג\b|fish\b/i.test(question)) return 'species';
   if (/technique|method|cast|surf|rock|rig|טכניק|שיטת|הטלה/i.test(question)) return 'technique';
@@ -78,8 +78,13 @@ export function understandQuery(
     !!city ||
     language === 'he';
 
-  const needsWeather = category === 'conditions' || /weather|wind|wave|tide|רוח|גל|מזג/i.test(question);
-  const needsRegulations = category === 'regulation' || /regulat|license|תקנ|רישיון/i.test(question);
+  const needsWeather =
+    category === 'conditions' ||
+    category === 'safety' ||
+    /weather|wind|wave|tide|רוח|גל|מזג|sea safe|good to fish|\b(today|tonight|now)\b|היום|הלילה|עכשיו/i.test(question);
+  const needsRegulations =
+    category === 'regulation' ||
+    /regulat|license|legal|minimum.*(size|length)|can i keep|תקנ|רישיון|חוקי|מינימום/i.test(question);
   const needsLocalReports = category === 'report' || category === 'location' || category === 'species';
   const needsEquipment = category === 'equipment' || /equipment|rod|ציוד|חכה/i.test(question);
   const needsSpecies = category === 'species' || /catch|species|לכוד|מין/i.test(question);

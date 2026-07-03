@@ -164,6 +164,10 @@ export interface FishingAnswer {
   lastVerifiedAt: string;
   refused?: boolean;
   refusalReason?: string;
+  /** True when search providers failed — the answer contains no live data. */
+  searchFailed?: boolean;
+  /** True when the answer was served from the research cache. */
+  fromCache?: boolean;
 }
 
 export interface ResearchOrchestratorInput {

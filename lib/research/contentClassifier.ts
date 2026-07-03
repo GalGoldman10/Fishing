@@ -58,12 +58,22 @@ export function filterByRelevance<T extends { title: string; snippet: string; ur
   }));
 
   const passing = scored.filter((s) => s.score >= minScore);
-  if (passing.length >= 2) return passing.map((s) => s.item);
+  const passingUrls = new Set(passing.map((s) => s.item.url ?? s.item.title));
+
+  // Count unique pages, not raw copies — the same page returned by several
+  // queries must not crowd out other legitimate sources.
+  if (passingUrls.size >= 2) {
+    const extras = scored
+      .filter((s) => s.score >= 40 && !passingUrls.has(s.item.url ?? s.item.title))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8);
+    return [...passing, ...extras].map((s) => s.item);
+  }
 
   // Relax threshold if too few results — keep top scored above 40
   return scored
     .filter((s) => s.score >= 40)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 8)
+    .slice(0, 12)
     .map((s) => s.item);
 }

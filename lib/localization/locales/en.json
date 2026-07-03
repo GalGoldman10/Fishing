@@ -618,6 +618,7 @@
   "research": {
     "hint": "I search multiple independent fishing sources and combine the best information for you.",
     "searching": "Researching fishing sources...",
+    "retrySearch": "Retry search",
     "sourcesCount": "{{count}} sources",
     "queriesUsed": "Search queries used",
     "conflicts": "Conflicting reports",

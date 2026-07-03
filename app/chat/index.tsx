@@ -31,6 +31,8 @@ interface Message {
   structured?: FishingAssistantResponse;
   webSearchUsed?: boolean;
   research?: FishingAnswer;
+  /** Original question, set when the answer failed or lacked live data — enables retry. */
+  retryQuestion?: string;
 }
 
 export default function ChatScreen() {
@@ -76,12 +78,18 @@ export default function ChatScreen() {
           structured: response.structured,
           webSearchUsed: response.webSearchUsed,
           research: response.research,
+          retryQuestion: response.research?.searchFailed ? text : undefined,
         },
       ]);
     } catch {
       setMessages((prev) => [
         ...prev,
-        { id: (Date.now() + 1).toString(), role: 'assistant', text: t('errors.aiMalformed') },
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          text: t('errors.aiMalformed'),
+          retryQuestion: text,
+        },
       ]);
     } finally {
       setLoading(false);
@@ -152,6 +160,17 @@ export default function ChatScreen() {
                 confidence={item.research.confidence}
               />
             )}
+            {item.retryQuestion && !loading && (
+              <Pressable
+                onPress={() => void send(item.retryQuestion!)}
+                accessibilityLabel={t('common.retry')}
+                style={[styles.retryBtn, { borderColor: colors.accent }]}
+              >
+                <Text style={{ color: colors.accent, fontWeight: '700', fontSize: 13 }}>
+                  {t('research.retrySearch')}
+                </Text>
+              </Pressable>
+            )}
           </View>
         )}
       />
@@ -217,6 +236,14 @@ function AssistantExtras({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  retryBtn: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+  },
   suggested: { padding: spacing.lg, gap: spacing.sm },
   suggestedTitle: { ...typography.label },
   webHint: { ...typography.bodySmall, marginBottom: spacing.sm },

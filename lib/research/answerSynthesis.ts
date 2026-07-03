@@ -91,8 +91,48 @@ function buildQuickAnswer(
   return `${intro}${synthesized}${disclaimer}`;
 }
 
-function detectConflicts(sources: FishingSource[], language: 'en' | 'he'): SourceConflict[] {
+/**
+ * Detect disagreeing numeric claims about the same measurable topic
+ * (e.g. minimum size, wave height, depth) across different sources.
+ */
+export function detectNumericConflicts(
+  sources: FishingSource[],
+  language: 'en' | 'he',
+): SourceConflict[] {
+  const topics: Array<{ topic: { en: string; he: string }; pattern: RegExp }> = [
+    { topic: { en: 'Minimum size', he: 'אורך מינימום' }, pattern: /(minimum|מינימום|אורך מינימלי)[^.]{0,60}?(\d+(?:\.\d+)?)\s*(cm|ס"מ|סנטימטר)/i },
+    { topic: { en: 'Wave height', he: 'גובה גלים' }, pattern: /(wave|גל(?:ים)?)[^.]{0,40}?(\d+(?:\.\d+)?)\s*(m\b|meter|מטר|מ')/i },
+    { topic: { en: 'Depth', he: 'עומק' }, pattern: /(depth|עומק)[^.]{0,40}?(\d+(?:\.\d+)?)\s*(m\b|meter|מטר|מ')/i },
+  ];
+
   const conflicts: SourceConflict[] = [];
+  for (const { topic, pattern } of topics) {
+    const claims: Array<{ value: number; source: FishingSource }> = [];
+    for (const source of sources) {
+      const match = pattern.exec(`${source.title} ${source.snippet}`);
+      if (match) claims.push({ value: parseFloat(match[2]), source });
+    }
+    const values = [...new Set(claims.map((c) => c.value))];
+    if (values.length > 1) {
+      conflicts.push({
+        topic: language === 'he' ? topic.he : topic.en,
+        claims: claims.map((c) => ({
+          claim: `${c.value}`,
+          sourceIds: [c.source.id],
+          reliability: c.source.isPrimarySource ? 'high' : 'medium',
+        })),
+        resolution:
+          language === 'he'
+            ? 'המקורות מציינים ערכים שונים — המידע אינו ודאי. העדף את המקור הרשמי או העדכני ביותר ואמת במקום.'
+            : 'Sources report different values — this information is uncertain. Prefer the official or most recent source and verify on site.',
+      });
+    }
+  }
+  return conflicts;
+}
+
+function detectConflicts(sources: FishingSource[], language: 'en' | 'he'): SourceConflict[] {
+  const conflicts: SourceConflict[] = [...detectNumericConflicts(sources, language)];
 
   const official = sources.filter((s) => s.isPrimarySource);
   const community = sources.filter((s) => ['forum', 'social', 'local-report'].includes(s.sourceType));
@@ -129,9 +169,23 @@ function detectConflicts(sources: FishingSource[], language: 'en' | 'he'): Sourc
 
 export function synthesizeAnswer(input: SynthesisInput): FishingAnswer {
   const { sources, understanding, language, question, generatedAt } = input;
-  const { level, reason } = determineConfidence(sources);
-  const quickAnswer = buildQuickAnswer(question, sources, understanding, language);
+  let { level, reason } = determineConfidence(sources);
+  let quickAnswer = buildQuickAnswer(question, sources, understanding, language);
   const conflicts = detectConflicts(sources, language);
+
+  // Numeric conflicts make the information uncertain — never hide that.
+  const numericConflicts = conflicts.filter((c) => c.claims.every((cl) => /^\d/.test(cl.claim)));
+  if (numericConflicts.length > 0) {
+    if (level === 'high') {
+      level = 'medium';
+      reason = `${reason} Sources disagree on: ${numericConflicts.map((c) => c.topic).join(', ')}.`;
+    }
+    const note =
+      language === 'he'
+        ? `\n\n⚠️ המקורות אינם מסכימים לגבי: ${numericConflicts.map((c) => c.topic).join(', ')}. העדף מקור רשמי ועדכני.`
+        : `\n\n⚠️ Sources disagree about: ${numericConflicts.map((c) => c.topic).join(', ')}. Prefer the official, most recent source.`;
+    quickAnswer = `${quickAnswer}${note}`;
+  }
 
   const safetyWarnings: string[] = [];
   if (understanding.needsWeather || understanding.category === 'safety') {
