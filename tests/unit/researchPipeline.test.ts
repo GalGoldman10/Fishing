@@ -135,7 +135,7 @@ describe('7-8. Regulations and protected species', () => {
   it('surfaces the INPA protected-species entry for Hebrew questions', async () => {
     const { answer } = await runFishingResearch(
       { question: 'אילו דגים מוגנים ואסור לדוג בישראל?', language: 'he' },
-      { minSources: 1 },
+      { minSources: 1, skipCache: true },
     );
     expect(answer.sources.some((s) => s.domain.includes('parks.org.il'))).toBe(true);
   });

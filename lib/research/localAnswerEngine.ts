@@ -31,6 +31,7 @@ import {
   type SpeciesTactics,
 } from '@/lib/research/fishingKnowledge';
 import { tryBuildTechniqueAnswer } from '@/lib/research/fishingTechniques';
+import { buildTermClarificationQuestion } from '@/lib/research/fishingTermNormalization';
 import type {
   EquipmentRecommendation,
   FishRecommendation,
@@ -593,14 +594,39 @@ export function enrichAnswerWithLocalKnowledge(
   understanding: QueryUnderstanding,
   locationHint?: string,
 ): FishingAnswer {
-  const local = buildLocalAnswer(question, answer.language, understanding, answer.sources, locationHint);
+  const norm = understanding.termNormalization;
+  const normalizedQuestion = norm?.normalizedQuestion ?? question;
 
-  if (local.directAnswer && (local.usedLocalDb || answer.sources.length === 0)) {
+  if (norm?.shouldClarify) {
+    const guess = norm.matches[0]?.canonical;
+    const clarification = buildTermClarificationQuestion(answer.language, guess);
     return {
       ...answer,
-      directAnswer: local.directAnswer,
-      summary: local.directAnswer,
-      quickAnswer: local.directAnswer,
+      directAnswer: clarification,
+      summary: clarification,
+      quickAnswer: clarification,
+      confidence: 'limited',
+      confidenceReason:
+        answer.language === 'he'
+          ? 'מונח לא ברור — נדרשת הבהרה קצרה.'
+          : 'Unclear fishing term — short clarification needed.',
+    };
+  }
+
+  const local = buildLocalAnswer(normalizedQuestion, answer.language, understanding, answer.sources, locationHint);
+
+  if (local.directAnswer && (local.usedLocalDb || answer.sources.length === 0)) {
+    let directAnswer = local.directAnswer;
+    const assumptionPrefix = norm?.assumptionPrefix?.[answer.language === 'he' ? 'he' : 'en'];
+    if (assumptionPrefix && !directAnswer.startsWith(assumptionPrefix.trim())) {
+      directAnswer = `${assumptionPrefix}${directAnswer}`;
+    }
+
+    return {
+      ...answer,
+      directAnswer,
+      summary: directAnswer,
+      quickAnswer: directAnswer,
       species: local.species ?? answer.species,
       equipment: local.equipment ?? answer.equipment,
       safetyWarnings: [...(local.safetyWarnings ?? []), ...(answer.safetyWarnings ?? [])],

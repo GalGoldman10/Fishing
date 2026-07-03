@@ -21,13 +21,25 @@ export function generateSearchQueries(
     freshness: understanding.needsWeather ? 'live' : 'any',
   };
 
-  // Primary intent query
+  // Primary intent query (normalized spelling).
   queries.push({
     ...base,
     query: question,
     category: understanding.category,
     sourceCategory: 'any',
   });
+
+  // Expand search with all alias variants for detected fishing terms.
+  if (understanding.termNormalization?.searchTerms.length) {
+    for (const term of understanding.termNormalization.searchTerms.slice(0, 6)) {
+      queries.push({
+        ...base,
+        query: language === 'he' ? `${term} דיג` : `${term} fishing`,
+        category: understanding.category,
+        sourceCategory: 'fishing',
+      });
+    }
+  }
 
   if (loc) {
     queries.push({
@@ -140,5 +152,5 @@ export function generateSearchQueries(
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).slice(0, 10);
+  }).slice(0, 14);
 }

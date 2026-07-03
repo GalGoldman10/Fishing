@@ -4,12 +4,15 @@
 
 import type { FishingSearchCategory } from '@/types/research';
 import { classifyFishingQuestion } from '@/lib/research/fishingTechniques';
+import { normalizeFishingQuery, type NormalizedFishingQuery } from '@/lib/research/fishingTermNormalization';
 
 export interface QueryUnderstanding {
   intent: string;
   category: FishingSearchCategory;
   /** Multi-label classification for answer routing (requirement §3). */
   questionClasses?: import('@/lib/research/fishingTechniques/types').QuestionClass[];
+  /** Spelling/slang normalization applied before search and classification. */
+  termNormalization?: NormalizedFishingQuery;
   locationName?: string;
   country?: string;
   region?: string;
@@ -65,12 +68,15 @@ export function understandQuery(
   language: 'en' | 'he',
   locationHint?: string,
 ): QueryUnderstanding {
-  const category = detectCategory(question, language);
+  const termNormalization = normalizeFishingQuery(question, language);
+  const q = termNormalization.normalizedQuestion;
+
+  const category = detectCategory(q, language);
 
   let locationName = locationHint;
   let city: string | undefined;
   for (const loc of LOCATION_PATTERNS) {
-    if (loc.pattern.test(question) || (locationHint && loc.pattern.test(locationHint))) {
+    if (loc.pattern.test(q) || (locationHint && loc.pattern.test(locationHint))) {
       locationName = loc.name;
       city = loc.city;
       break;
@@ -78,25 +84,26 @@ export function understandQuery(
   }
 
   const isIsraeliLocation =
-    /israel|ישראל|mediterranean|ים תיכון/i.test(question + (locationHint ?? '')) ||
+    /israel|ישראל|mediterranean|ים תיכון/i.test(q + (locationHint ?? '')) ||
     !!city ||
     language === 'he';
 
   const needsWeather =
     category === 'conditions' ||
     category === 'safety' ||
-    /weather|wind|wave|tide|רוח|גל|מזג|sea safe|good to fish|\b(today|tonight|now)\b|היום|הלילה|עכשיו/i.test(question);
+    /weather|wind|wave|tide|רוח|גל|מזג|sea safe|good to fish|\b(today|tonight|now)\b|היום|הלילה|עכשיו/i.test(q);
   const needsRegulations =
     category === 'regulation' ||
-    /regulat|license|legal|minimum.*(size|length)|can i keep|תקנ|רישיון|חוקי|מינימום/i.test(question);
+    /regulat|license|legal|minimum.*(size|length)|can i keep|תקנ|רישיון|חוקי|מינימום/i.test(q);
   const needsLocalReports = category === 'report' || category === 'location' || category === 'species';
-  const needsEquipment = category === 'equipment' || /equipment|rod|ציוד|חכה/i.test(question);
-  const needsSpecies = category === 'species' || /catch|species|לכוד|מין/i.test(question);
+  const needsEquipment = category === 'equipment' || /equipment|rod|ציוד|חכה/i.test(q);
+  const needsSpecies = category === 'species' || /catch|species|לכוד|מין/i.test(q);
 
   return {
-    intent: question.trim(),
+    intent: q.trim(),
     category,
-    questionClasses: classifyFishingQuestion(question),
+    questionClasses: classifyFishingQuestion(q),
+    termNormalization,
     locationName,
     country: isIsraeliLocation ? 'IL' : undefined,
     region: isIsraeliLocation ? 'Mediterranean' : undefined,

@@ -31,6 +31,7 @@ import { resolveLocation } from '@/lib/research/locationResolver';
 import { sanitizeWebContent, isSafeUrl } from '@/lib/research/contentSanitizer';
 import { getCachedResearch, researchCacheKey, setCachedResearch } from '@/lib/research/researchCache';
 import { getLiveConditionsAdvice } from '@/lib/research/conditionsAdvisor';
+import { normalizeFishingQuery } from '@/lib/research/fishingTermNormalization';
 import type { FishingSearchProvider } from '@/lib/research/providers/types';
 import { wikipediaProvider } from '@/lib/research/providers/wikipedia';
 import { israeliSourcesProvider } from '@/lib/research/providers/israeliSources';
@@ -59,8 +60,12 @@ export async function runFishingResearch(
   const minSources = options.minSources ?? 3;
   const maxSources = options.maxSources ?? 8;
 
+  // 0. Normalize Hebrew/English fishing slang and typos before every downstream step.
+  const termNormalization = normalizeFishingQuery(input.question, language);
+  const question = termNormalization.normalizedQuestion;
+
   // 1. Topic restriction — refuse non-fishing questions politely.
-  const scope = validateFishingScope(input.question, language);
+  const scope = validateFishingScope(question, language);
   if (!scope.allowed) {
     const refusal: FishingAnswer = {
       question: input.question,
@@ -81,8 +86,11 @@ export async function runFishingResearch(
   }
 
   // 2. Understand the question and resolve the location to real coordinates.
-  const understanding = understandQuery(input.question, language, input.locationHint);
-  const resolved = resolveLocation(input.question, input.locationHint);
+  const understanding = understandQuery(question, language, input.locationHint);
+  if (!understanding.termNormalization) {
+    understanding.termNormalization = termNormalization;
+  }
+  const resolved = resolveLocation(question, input.locationHint);
   if (resolved) {
     understanding.locationName = language === 'he' ? resolved.nameHe : resolved.nameEn;
     understanding.city = resolved.city ?? understanding.city;
@@ -92,7 +100,7 @@ export async function runFishingResearch(
 
   // 3. Cache lookup (query + location + language + day + category).
   const cacheKey = researchCacheKey({
-    question: input.question,
+    question,
     language,
     category: understanding.category,
     locationId: resolved?.id,
@@ -105,7 +113,7 @@ export async function runFishingResearch(
   }
 
   // 4. Multi-query, multi-provider search. Track failures explicitly.
-  const searchQueries = generateSearchQueries(input.question, understanding, language);
+  const searchQueries = generateSearchQueries(question, understanding, language);
   const providersUsed = providers.map((p) => p.name);
   let failedTasks = 0;
 
@@ -144,7 +152,7 @@ export async function runFishingResearch(
 
   // 7. Synthesize the evidence-based answer.
   const answer = synthesizeAnswer({
-    question: input.question,
+    question,
     language,
     understanding,
     sources: diverse,
@@ -156,7 +164,7 @@ export async function runFishingResearch(
   // 8. Local verified knowledge (species profiles, demo spot data).
   const enriched = enrichAnswerWithLocalKnowledge(
     answer,
-    input.question,
+    question,
     understanding,
     input.locationHint,
   );

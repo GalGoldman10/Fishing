@@ -8,6 +8,7 @@ import { env } from '@/lib/config/env';
 import i18n from '@/lib/localization/i18n';
 import { formatDateTime } from '@/lib/localization/format';
 import { runFishingResearch, sourcesToLegacyFormat } from '@/lib/research/orchestrator';
+import { normalizeFishingQueryText } from '@/lib/research/fishingTermNormalization';
 import type { FishingAnswer, ResearchOrchestratorInput } from '@/types/research';
 import { FishingAssistantResponse } from '@/lib/validation/schemas';
 
@@ -97,11 +98,14 @@ export async function performFishingResearch(
     env.supabaseAnonKey &&
     !env.supabaseUrl.includes('placeholder');
 
+  const normalizedQuestion = normalizeFishingQueryText(input.question, input.language);
+  const researchInput = { ...input, question: normalizedQuestion };
+
   if (canUseEdge) {
     try {
       const { data, error } = await supabase.functions.invoke('fishing-research', {
         body: {
-          question: input.question,
+          question: normalizedQuestion,
           language: input.language,
           locationHint: input.locationHint,
           location: input.location,
@@ -121,7 +125,7 @@ export async function performFishingResearch(
     }
   }
 
-  const result = await runFishingResearch(input);
+  const result = await runFishingResearch(researchInput);
   return {
     answer: result.answer,
     structured: toAssistantResponse(result.answer),

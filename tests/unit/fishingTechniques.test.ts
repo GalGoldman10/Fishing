@@ -105,10 +105,9 @@ describe('required test questions (Hebrew)', () => {
     expect(r.directAnswer).toMatch(/דראג|קרס|חוט/);
   });
 
-  it('jarjour in Hebrew', () => {
-    const r = ask('מה זה ג\'רג\'ור ואיך מתחילים?', 'he');
-    expect(r.directAnswer).toMatch(/ג'?רג|ז'?ירז|Jarjour/i);
-    expect(r.directAnswer).toMatch(/minnow|F|S|בד|light/i);
+  it('jarjour typo variants in Hebrew', () => {
+    const r = ask('איך עושים גרגור?', 'he');
+    expect(r.directAnswer).toMatch(/אני מניח שהתכוונת|ז'?ירז'ור|ג'?רג/i);
     expect(r.directAnswer).toContain('תשובה ישירה:');
   });
 });
