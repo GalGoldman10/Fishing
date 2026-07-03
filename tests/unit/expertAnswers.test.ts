@@ -150,6 +150,31 @@ describe('Smart follow-up questions', () => {
   });
 });
 
+describe('Rod-buying question with a generic "beach" mention (screenshot bug)', () => {
+  it('Hebrew: "אני דג לרוב בחופים" gets a full setup, not the generic fallback', () => {
+    const result = ask('אני רוצה לקנות חכה חדשה איזה חכה אתה ממליץ? אני דג לרוב בחופים', 'he');
+    expect(result.grounded).toBe(true);
+    expect(result.directAnswer).toContain('הציוד המומלץ:');
+    expect(result.equipment?.[0]?.rod).toBeDefined();
+    // Notes the sandy-shore assumption and offers to adjust.
+    expect(result.directAnswer).toMatch(/חוליים/);
+  });
+
+  it('English: "I mostly fish from the beach" gets a surf-rod recommendation', () => {
+    const result = ask('Which rod should I buy? I mostly fish from the beach');
+    expect(result.grounded).toBe(true);
+    expect(result.directAnswer).toContain('Best setup:');
+    expect(result.directAnswer).toMatch(/surf rod/i);
+    expect(result.directAnswer).toMatch(/most israeli beaches are sandy/i);
+  });
+
+  it('rod question with no context at all still recommends a versatile rod while asking', () => {
+    const result = ask('What rod should I buy?');
+    expect(result.followUpQuestions?.length).toBeGreaterThanOrEqual(1);
+    expect(result.directAnswer).toMatch(/3\.6–4\.2m surf rod/);
+  });
+});
+
 describe('Hebrew expert answers', () => {
   it('answers a Hebrew rocky-bait question with the full structure in Hebrew', () => {
     const result = ask('איזה פיתיון כדאי לחוף סלעי?', 'he');

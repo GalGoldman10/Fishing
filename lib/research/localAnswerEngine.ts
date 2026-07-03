@@ -22,6 +22,8 @@ import {
   detectHabitat,
   detectBait,
   detectTargetSpecies,
+  isGenericBeachMention,
+  mentionsForeignLocation,
   getSeasonalNotes,
   shoreTypeToHabitat,
   type HabitatTactics,
@@ -257,6 +259,33 @@ export function buildLocalAnswer(
     : (understanding.locationName ?? understanding.city);
 
   const fullText = `${question} ${locationHint ?? ''}`;
+
+  // The knowledge base covers the Israeli coast. For foreign locations, be
+  // honest instead of applying local expertise where it does not belong —
+  // web sources (when available) drive those answers.
+  if (!spot && mentionsForeignLocation(fullText)) {
+    const honest = isHe
+      ? 'תשובה כנה: מסד הידע המקומי שלי מכסה את חופי ישראל, ואין לי מידע מאומת ממקור ראשון על האזור ששאלתם עליו. עקרונות שעובדים כמעט בכל מקום: דוגו סביב זריחה ושקיעה, שאלו בחנות דיג מקומית איזה פיתיון עובד עכשיו, והתאימו את הציוד לסוג החוף (חכת סרף ארוכה לחוף פתוח, חכה קצרה וקשיחה ליד סלעים). בדקו את תקנות הדיג המקומיות לפני שיוצאים.'
+      : 'Honest answer: my verified local database covers the Israeli coast, so I do not have first-hand knowledge of that area. Principles that travel well: fish around sunrise and sunset, ask a local tackle shop what bait is working now, and match the gear to the terrain (long surf rod for open beaches, shorter stiff rod near rocks). Check the local fishing regulations before you go.';
+
+    const foreignSections = [honest];
+    for (const src of sources.slice(0, 3)) {
+      const relevant = extractRelevantSentences(src.snippet, question, 1);
+      if (relevant.length > 0) {
+        foreignSections.push(
+          isHe ? `ממקורות רשת:\n${relevant.join('\n')}` : `From web sources:\n${relevant.join('\n')}`,
+        );
+      }
+    }
+    foreignSections.push(buildSourcesSection(language, sources, { usedSpotDb: false, usedConditions: false }));
+
+    return {
+      directAnswer: foreignSections.join('\n\n'),
+      usedLocalDb: false,
+      grounded: false,
+    };
+  }
+
   const habitatKey = spot ? shoreTypeToHabitat(spot.shoreType) : detectHabitat(fullText);
   const habitat = habitatKey ? HABITAT_TACTICS[habitatKey] : undefined;
   const bait = detectBait(fullText);
@@ -367,10 +396,16 @@ export function buildLocalAnswer(
     usedLocalDb = true;
     usedSpotDb = !!spot;
     const where = spotName ?? (isHe ? `חוף ${shoreTypeLabel(habitatKey!, 'he')}` : `a ${shoreTypeLabel(habitatKey!, 'en')} beach`);
+    const assumedTerrain = !spot && isGenericBeachMention(fullText);
+    const assumptionNote = assumedTerrain
+      ? isHe
+        ? ' רוב חופי ישראל חוליים, אז ההמלצה מותאמת לחוף חולי — אם אתם דגים מסלעים או ממזח, ספרו לי ואתאים.'
+        : ' Most Israeli beaches are sandy, so this is tuned for sandy shores — if you fish from rocks or a pier, tell me and I will adjust.'
+      : '';
     sections.push(
       isHe
-        ? `תשובה ישירה: הנה הסטאפ המדויק ל${where}, כולל למה כל פריט — הפירוט למטה.`
-        : `Direct answer: Here is the exact setup for ${where}, and why each piece matters — details below.`,
+        ? `תשובה ישירה: הנה הסטאפ המדויק ל${where}, כולל למה כל פריט — הפירוט למטה.${assumptionNote}`
+        : `Direct answer: Here is the exact setup for ${where}, and why each piece matters — details below.${assumptionNote}`,
     );
   } else if (asksSpecies && (spot || habitat)) {
     usedLocalDb = true;
@@ -464,9 +499,13 @@ export function buildLocalAnswer(
       target: !target && !bait,
     });
 
-    const universal = isHe
-      ? 'בינתיים, עצה שעובדת כמעט תמיד בים התיכון: שרימפס טרי על חסקת ריצה קלה תופס כמעט כל דג, והשעות החזקות הן סביב הזריחה והשקיעה.'
-      : 'Meanwhile, advice that almost always works on the Mediterranean: fresh shrimp on a light running rig catches nearly everything, and the strongest hours are around sunrise and sunset.';
+    const universal = asksEquipment
+      ? isHe
+        ? 'בינתיים, הבחירה הבטוחה ביותר לרוב הדיג בישראל: חכת סרף ורסטילית 3.6–4.2 מ\' (משקל הטלה 80–150 גרם) עם סליל ספינינג 5000–6000 — מתאימה לחוף חולי, מעורב ואפילו מזח.'
+        : 'Meanwhile, the safest all-round choice for most fishing in Israel: a versatile 3.6–4.2m surf rod (80–150g casting weight) with a 5000–6000 spinning reel — it covers sandy beaches, mixed shores and even piers.'
+      : isHe
+        ? 'בינתיים, עצה שעובדת כמעט תמיד בים התיכון: שרימפס טרי על חסקת ריצה קלה תופס כמעט כל דג, והשעות החזקות הן סביב הזריחה והשקיעה.'
+        : 'Meanwhile, advice that almost always works on the Mediterranean: fresh shrimp on a light running rig catches nearly everything, and the strongest hours are around sunrise and sunset.';
     const seasonal = getSeasonalNotes(new Date(), language);
     const beaches = listKnownBeaches(language).slice(0, 6).join(', ');
 

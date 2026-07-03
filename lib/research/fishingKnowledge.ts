@@ -553,7 +553,30 @@ export function detectHabitat(text: string): HabitatKey | undefined {
   if (hasRock) return 'rocky';
   if (hasSand) return 'sandy';
   if (/pier|jetty|marina|harbor|harbour|breakwater|dock|מזח|מרינה|נמל|שובר/i.test(text)) return 'pier';
+  // Generic "beach"/"shore" mention with no terrain named — default to sandy,
+  // which describes most of the Israeli Mediterranean coastline.
+  if (/beach|shore|surf|coast|חוף|חופים|מהחוף/i.test(text)) return 'sandy';
   return undefined;
+}
+
+/**
+ * The knowledge base covers the Israeli Mediterranean. When a question names a
+ * foreign country or region, habitat/seasonal expertise must NOT be applied —
+ * the bot should say so honestly and lean on web sources instead.
+ */
+const FOREIGN_LOCATION_PATTERN =
+  /iceland|norway|sweden|denmark|finland|england|scotland|ireland|\buk\b|france|spain|portugal|italy|greece|turkey|cyprus|egypt|jordan|croatia|malta|morocco|tunisia|united states|\busa\b|america|canada|mexico|brazil|argentina|australia|new zealand|thailand|japan|china|india|maldives|seychelles|indonesia|philippines|vietnam|איסלנד|נורבגיה|שוודיה|דנמרק|אנגליה|סקוטלנד|אירלנד|צרפת|ספרד|פורטוגל|איטליה|יוון|טורקיה|קפריסין|מצרים|ירדן|קרואטיה|מלטה|מרוקו|תוניסיה|ארה"ב|אמריקה|קנדה|מקסיקו|ברזיל|אוסטרליה|תאילנד|יפן|סין|הודו|מלדיביים/i;
+
+export function mentionsForeignLocation(text: string): boolean {
+  return FOREIGN_LOCATION_PATTERN.test(text);
+}
+
+/** True when the habitat was only a generic beach/shore mention (no explicit terrain). */
+export function isGenericBeachMention(text: string): boolean {
+  return (
+    /beach|shore|surf|coast|חוף|חופים|מהחוף/i.test(text) &&
+    !/rock|reef|cliff|boulder|סלע|שונית|צוק|sand|חול|pier|jetty|marina|harbor|harbour|breakwater|dock|מזח|מרינה|נמל|שובר/i.test(text)
+  );
 }
 
 export function detectBait(text: string): BaitProfile | undefined {
