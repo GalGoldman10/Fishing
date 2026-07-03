@@ -49,6 +49,8 @@ const TIULIM_URL =
   'https://tiulim.net/%D7%9E%D7%A7%D7%95%D7%9E%D7%95%D7%AA-%D7%93%D7%99%D7%92-%D7%A9%D7%9E%D7%95%D7%9E%D7%9C%D7%A6%D7%99%D7%9D-%D7%91%D7%99%D7%A9%D7%A8%D7%90%D7%9C/';
 const ISRAEL_FISHING_JARJOUR_URL =
   'https://israelfishing.co.il/%D7%9B%D7%AA%D7%91%D7%95%D7%AA/%D7%94%D7%9E%D7%93%D7%A8%D7%99%D7%9A-%D7%94%D7%A9%D7%9C%D7%9D-%D7%9C%D7%92%D7%A8%D7%92%D7%95%D7%A8/';
+const TAHVIVIM_SPECIES_URL =
+  'https://tahvivim.com/%d7%a1%d7%95%d7%92%d7%99-%d7%93%d7%92%d7%99%d7%9d/';
 
 export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   // ---- shvilist.com — Mediterranean fishing beaches ----
@@ -311,6 +313,25 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
       'ג\'רג\'ור', 'גרגור', 'ז\'ירז\'ור', 'jarjour', 'zirzur', 'lure', 'דמוי', 'minnow', 'topwater',
       'popper', 'jig', 'סיליקון', 'soft plastic', 'retrieve', 'הובלה', 'בד', 'braid', 'מקל light',
       'לוקוס', 'גומבר', 'ברקודה', 'סרגוס', 'spinning', 'artificial lure',
+    ],
+  },
+  // ---- tahvivim.com — common Israeli sea fish species ----
+  {
+    id: 'tahvivim-species',
+    url: TAHVIVIM_SPECIES_URL,
+    pageId: 'tahvivim-species',
+    title: {
+      en: 'Types of fish in Israel — Tahvivim',
+      he: 'סוגי דגים בישראל — תחביבים',
+    },
+    snippet: {
+      en: 'Common Mediterranean species in Israel include grouper (lokus), red mullet (barbounia), sea bass (levrek), sillago (telvizia/battis), bonito (palamida), amberjack (intias), barracuda, bluefish, sargo, and more. Each species has different habits — rocky vs sandy bottom, day vs night activity, and preferred baits.',
+      he: 'דגי ים נפוצים בישראל כוללים לוקוס, ברבוניה, לברק, טלוויזיה (באטיס), פלמידה, אינטיאס, ברקודה, גומבר, סרגוס ועוד. לכל מין הרגלי חיים שונים — סלע מול חול, פעילות יום מול לילה, ופיתיונות מועדפים.',
+    },
+    keywords: [
+      'סוגי דגים', 'fish types', 'species', 'לוקוס', 'grouper', 'ברבוניה', 'barbounia', 'לברק', 'levrek',
+      'טלוויזיה', 'sillago', 'באטיס', 'פלמידה', 'bonito', 'אינטיאס', 'amberjack', 'דוראדו', 'dorado',
+      'טרכון', 'jack', 'סרגוס', 'sargo', 'גומבר', 'bluefish', 'ברקודה', 'barracuda', 'טונית', 'tunny',
     ],
   },
 ];

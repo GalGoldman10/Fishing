@@ -50,6 +50,14 @@ describe('israeliSourcesProvider', () => {
     expect(results.some((r) => r.url.includes('israelfishing.co.il'))).toBe(true);
   });
 
+  it('matches species type questions to tahvivim.com', async () => {
+    const results = await israeliSourcesProvider.search({
+      query: 'סוגי דגים בים התיכון לברק טלוויזיה',
+      language: 'he',
+    });
+    expect(results.some((r) => r.url.includes('tahvivim.com'))).toBe(true);
+  });
+
   it('returns no results for unrelated queries', async () => {
     const results = await israeliSourcesProvider.search({
       query: 'completely unrelated query about nothing',
@@ -64,7 +72,7 @@ describe('israeliSourcesProvider', () => {
       expect(entry.title.he.length).toBeGreaterThan(5);
       expect(entry.snippet.en.length).toBeGreaterThan(20);
       expect(entry.snippet.he.length).toBeGreaterThan(20);
-      expect(entry.url).toMatch(/^https:\/\/(www\.)?(shvilist\.com|parks\.org\.il|tiulim\.net|israelfishing\.co\.il)\//);
+      expect(entry.url).toMatch(/^https:\/\/(www\.)?(shvilist\.com|parks\.org\.il|tiulim\.net|israelfishing\.co\.il|tahvivim\.com)\//);
       expect(entry.keywords.length).toBeGreaterThan(2);
     }
   });

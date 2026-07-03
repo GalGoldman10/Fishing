@@ -29,7 +29,7 @@ export interface FishingSearchQuery {
  * - tiulim.net — recommended fishing places in Israel
  * - israelfishing.co.il — lure fishing / jarjour guide
  */
-const ISRAELI_FISHING_DOMAINS = ['parks.org.il', 'shvilist.com', 'tiulim.net', 'israelfishing.co.il'];
+const ISRAELI_FISHING_DOMAINS = ['parks.org.il', 'shvilist.com', 'tiulim.net', 'israelfishing.co.il', 'tahvivim.com'];
 
 function fishingQuery(base: string, language: string): string {
   const suffix = language === 'he' ? ' דיג דגים חוף' : ' fishing angling shore';

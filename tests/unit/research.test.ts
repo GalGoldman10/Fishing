@@ -55,6 +55,24 @@ describe('scopeGuard', () => {
     expect(result.answer.refused).toBeFalsy();
     expect(result.answer.directAnswer).toMatch(/ז'?ירז'ור|ג'?רג|Jarjour|light|בד/i);
   }, 15000);
+
+  it('answers species list with catch ethics overview', async () => {
+    const result = await runFishingResearch({
+      question: 'סוגי דגים בישראל',
+      language: 'he',
+    }, { minSources: 0, skipCache: true });
+    expect(result.answer.refused).toBeFalsy();
+    expect(result.answer.directAnswer).toMatch(/12|לוקוס|סרגוס/);
+  }, 15000);
+
+  it('answers barracuda size limit question', async () => {
+    const result = await runFishingResearch({
+      question: 'מה המינימום לברקודה?',
+      language: 'he',
+    }, { minSources: 0, skipCache: true });
+    expect(result.answer.refused).toBeFalsy();
+    expect(result.answer.directAnswer).toMatch(/20|50|4/);
+  }, 15000);
 });
 
 describe('queryGenerator', () => {

@@ -43,6 +43,11 @@ const SOURCES = [
     title: 'המדריך השלם לג\'רג\'ור — Israel Fishing',
     url: 'https://israelfishing.co.il/%D7%9B%D7%AA%D7%91%D7%95%D7%AA/%D7%94%D7%9E%D7%93%D7%A8%D7%99%D7%9A-%D7%94%D7%A9%D7%9C%D7%9D-%D7%9C%D7%92%D7%A8%D7%92%D7%95%D7%A8/',
   },
+  {
+    id: 'tahvivim-species',
+    title: 'סוגי דגים — תחביבים',
+    url: 'https://tahvivim.com/%d7%a1%d7%95%d7%92%d7%99-%d7%93%d7%92%d7%99%d7%9d/',
+  },
 ];
 
 function htmlToText(html) {

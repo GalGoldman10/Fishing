@@ -19,7 +19,7 @@ export interface WebSearchResponse {
  * fishing beaches guide), tiulim.net (recommended fishing places),
  * israelfishing.co.il (lure/jarjour techniques).
  */
-const ISRAELI_FISHING_DOMAINS = ['parks.org.il', 'shvilist.com', 'tiulim.net', 'israelfishing.co.il'];
+const ISRAELI_FISHING_DOMAINS = ['parks.org.il', 'shvilist.com', 'tiulim.net', 'israelfishing.co.il', 'tahvivim.com'];
 
 function fishingQuery(base: string, language: string, locationHint?: string): string {
   const parts = [base.trim()];

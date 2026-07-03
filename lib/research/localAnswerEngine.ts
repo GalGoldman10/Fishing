@@ -31,6 +31,7 @@ import {
   type SpeciesTactics,
 } from '@/lib/research/fishingKnowledge';
 import { tryBuildTechniqueAnswer } from '@/lib/research/fishingTechniques';
+import { tryBuildSpeciesCatchAnswer } from '@/lib/research/israeliSpeciesCatchGuide';
 import { buildTermClarificationQuestion } from '@/lib/research/fishingTermNormalization';
 import type {
   EquipmentRecommendation,
@@ -310,6 +311,15 @@ export function buildLocalAnswer(
       return {
         directAnswer: techniqueResult.directAnswer,
         safetyWarnings: [...(techniqueResult.safetyWarnings ?? []), ...extraSafety],
+        usedLocalDb: true,
+        grounded: true,
+      };
+    }
+
+    const speciesCatchResult = tryBuildSpeciesCatchAnswer(question, language);
+    if (speciesCatchResult) {
+      return {
+        directAnswer: speciesCatchResult.directAnswer,
         usedLocalDb: true,
         grounded: true,
       };
