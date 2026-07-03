@@ -1,0 +1,101 @@
+/**
+ * Understand user fishing intent, location, and category.
+ */
+
+import type { FishingSearchCategory } from '@/types/research';
+
+export interface QueryUnderstanding {
+  intent: string;
+  category: FishingSearchCategory;
+  locationName?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  needsWeather: boolean;
+  needsRegulations: boolean;
+  needsLocalReports: boolean;
+  needsEquipment: boolean;
+  needsSpecies: boolean;
+  isIsraeliLocation: boolean;
+}
+
+const LOCATION_PATTERNS: Array<{ pattern: RegExp; name: string; city?: string }> = [
+  { pattern: /palmachim|פלמחים/i, name: 'Palmachim Beach', city: 'Palmachim' },
+  { pattern: /gordon|גורדון|frishman|פרישמן|hilton.*tel aviv|חוף הילטון/i, name: 'Gordon Beach', city: 'Tel Aviv' },
+  { pattern: /tel aviv|תל אביב/i, name: 'Tel Aviv coast', city: 'Tel Aviv' },
+  { pattern: /bat yam|בת ים/i, name: 'Bat Yam Beach', city: 'Bat Yam' },
+  { pattern: /rishon|ראשון/i, name: 'Rishon LeZion Beach', city: 'Rishon LeZion' },
+  { pattern: /herzliya|הרצליה|sidna ali|סידנא עלי/i, name: 'Herzliya coast', city: 'Herzliya' },
+  { pattern: /jaffa|יפו|yafo/i, name: 'Jaffa Rocky Shore', city: 'Jaffa' },
+  { pattern: /haifa|חיפה|bat galim|בת גלים|dado/i, name: 'Haifa coast', city: 'Haifa' },
+  { pattern: /netanya|נתניה/i, name: 'Netanya coast', city: 'Netanya' },
+  { pattern: /caesarea|קיסריה|sdot yam|שדות ים/i, name: 'Caesarea coast', city: 'Caesarea' },
+  { pattern: /beit yanai|בית ינאי|michmoret|מיכמור/i, name: 'Beit Yanai Beach', city: 'Beit Yanai' },
+  { pattern: /ashdod|אשדוד/i, name: 'Ashdod coast', city: 'Ashdod' },
+  { pattern: /ashkelon|אשקלון/i, name: 'Ashkelon coast', city: 'Ashkelon' },
+  { pattern: /nitzanim|ניצנים/i, name: 'Nitzanim Beach', city: 'Nitzanim' },
+  { pattern: /zikim|זיקים/i, name: 'Zikim Beach', city: 'Zikim' },
+  { pattern: /dor|דור|habonim|הבונים/i, name: 'Dor Beach', city: 'Dor' },
+  { pattern: /nahariya|נהריה|akko|acre|עכו/i, name: 'Northern coast', city: 'Nahariya' },
+  { pattern: /eilat|אילת/i, name: 'Eilat', city: 'Eilat' },
+  { pattern: /sea of galilee|כנרת|kinneret|tiberias|טבריה/i, name: 'Sea of Galilee', city: 'Tiberias' },
+];
+
+function detectCategory(question: string, language: 'en' | 'he'): FishingSearchCategory {
+  const q = question.toLowerCase();
+
+  if (/regulat|license|licence|תקנ|רישיון|מינימום|protected|מוגן/i.test(question)) return 'regulation';
+  if (/equipment|rod|reel|line|hook|sinker|ציוד|חכה|סליל|קרס|משקולת/i.test(question)) return 'equipment';
+  if (/species|catch|identify|לכוד|מין|זהה|דג\b|fish\b/i.test(question)) return 'species';
+  if (/technique|method|cast|surf|rock|rig|טכניק|שיטת|הטלה/i.test(question)) return 'technique';
+  if (/weather|wind|wave|tide|temperature|רוח|גל|גאות|מזג/i.test(question)) return 'conditions';
+  if (/safe|danger|hazard|current|slippery|בטיח|סכנ|זרם/i.test(question)) return 'safety';
+  if (/report|forecast|activity|דיווח|תחזית/i.test(question)) return 'report';
+  if (/beach|spot|location|shore|חוף|מקום|נמל|מזח/i.test(question)) return 'location';
+
+  return 'general';
+}
+
+export function understandQuery(
+  question: string,
+  language: 'en' | 'he',
+  locationHint?: string,
+): QueryUnderstanding {
+  const category = detectCategory(question, language);
+
+  let locationName = locationHint;
+  let city: string | undefined;
+  for (const loc of LOCATION_PATTERNS) {
+    if (loc.pattern.test(question) || (locationHint && loc.pattern.test(locationHint))) {
+      locationName = loc.name;
+      city = loc.city;
+      break;
+    }
+  }
+
+  const isIsraeliLocation =
+    /israel|ישראל|mediterranean|ים תיכון/i.test(question + (locationHint ?? '')) ||
+    !!city ||
+    language === 'he';
+
+  const needsWeather = category === 'conditions' || /weather|wind|wave|tide|רוח|גל|מזג/i.test(question);
+  const needsRegulations = category === 'regulation' || /regulat|license|תקנ|רישיון/i.test(question);
+  const needsLocalReports = category === 'report' || category === 'location' || category === 'species';
+  const needsEquipment = category === 'equipment' || /equipment|rod|ציוד|חכה/i.test(question);
+  const needsSpecies = category === 'species' || /catch|species|לכוד|מין/i.test(question);
+
+  return {
+    intent: question.trim(),
+    category,
+    locationName,
+    country: isIsraeliLocation ? 'IL' : undefined,
+    region: isIsraeliLocation ? 'Mediterranean' : undefined,
+    city,
+    needsWeather,
+    needsRegulations,
+    needsLocalReports,
+    needsEquipment,
+    needsSpecies,
+    isIsraeliLocation,
+  };
+}
