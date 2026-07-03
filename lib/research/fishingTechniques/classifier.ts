@@ -63,6 +63,7 @@ export function matchTechniqueTopic(question: string): TechniqueMatch | null {
 
   const baitFocus = /bait|פיתיון|שרימפס|דיונון|squid|shrimp/i.test(question);
   const rigFocus = /\brig\b|ריג|חסקה/i.test(question);
+  const lureFocus = /lure|jarjour|zirzur|minnow|popper|jig|דמוי|ג['׳]?רג|ז['׳]?ירז|topwater|סיליקon/i.test(question);
 
   for (const topic of TECHNIQUE_TOPICS) {
     for (const pattern of topic.patterns) {
@@ -71,6 +72,8 @@ export function matchTechniqueTopic(question: string): TechniqueMatch | null {
         if (topic.category === 'rig') score += 5;
         if (baitFocus && topic.category === 'bait') score += 40;
         if (rigFocus && topic.category === 'rig') score += 40;
+        if (lureFocus && topic.category === 'lure') score += 45;
+        if (topic.id === 'jarjour-lure-guide') score += 30;
         if (baitFocus && topic.category === 'location' && !/how|איך|fish from|לדוג/i.test(question)) score -= 20;
         if (!best || score > best.score) {
           best = { topic, score };

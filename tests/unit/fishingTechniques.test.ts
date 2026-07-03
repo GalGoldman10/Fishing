@@ -104,6 +104,13 @@ describe('required test questions (Hebrew)', () => {
     const r = ask('למה הדגים משתחררים לי?', 'he');
     expect(r.directAnswer).toMatch(/דראג|קרס|חוט/);
   });
+
+  it('jarjour in Hebrew', () => {
+    const r = ask('מה זה ג\'רג\'ור ואיך מתחילים?', 'he');
+    expect(r.directAnswer).toMatch(/ג'?רג|ז'?ירז|Jarjour/i);
+    expect(r.directAnswer).toMatch(/minnow|F|S|בד|light/i);
+    expect(r.directAnswer).toContain('תשובה ישירה:');
+  });
 });
 
 describe('anti-generic rule', () => {
@@ -128,5 +135,10 @@ describe('topic matcher', () => {
 
   it('matches drop shot', () => {
     expect(matchTechniqueTopic('explain drop shot rig for soft plastics')?.topic.id).toBe('drop-shot');
+  });
+
+  it('matches jarjour / zirzur lure questions', () => {
+    expect(matchTechniqueTopic('מה זה ג\'רג\'ור?')?.topic.id).toBe('jarjour-lure-guide');
+    expect(matchTechniqueTopic('how to do jarjour lure fishing')?.topic.id).toBe('jarjour-lure-guide');
   });
 });

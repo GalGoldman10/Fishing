@@ -27,8 +27,9 @@ export interface FishingSearchQuery {
  * - parks.org.il — Israel Nature and Parks Authority (official regulations)
  * - shvilist.com — Mediterranean fishing beaches guide
  * - tiulim.net — recommended fishing places in Israel
+ * - israelfishing.co.il — lure fishing / jarjour guide
  */
-const ISRAELI_FISHING_DOMAINS = ['parks.org.il', 'shvilist.com', 'tiulim.net'];
+const ISRAELI_FISHING_DOMAINS = ['parks.org.il', 'shvilist.com', 'tiulim.net', 'israelfishing.co.il'];
 
 function fishingQuery(base: string, language: string): string {
   const suffix = language === 'he' ? ' דיג דגים חוף' : ' fishing angling shore';

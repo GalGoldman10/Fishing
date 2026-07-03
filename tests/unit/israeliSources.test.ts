@@ -42,6 +42,14 @@ describe('israeliSourcesProvider', () => {
     expect(results.some((r) => r.url.includes('tiulim.net'))).toBe(true);
   });
 
+  it('matches jarjour lure questions to israelfishing.co.il', async () => {
+    const results = await israeliSourcesProvider.search({
+      query: 'איך עושים ג\'רג\'ור עם דמוי minnow',
+      language: 'he',
+    });
+    expect(results.some((r) => r.url.includes('israelfishing.co.il'))).toBe(true);
+  });
+
   it('returns no results for unrelated queries', async () => {
     const results = await israeliSourcesProvider.search({
       query: 'completely unrelated query about nothing',
@@ -56,7 +64,7 @@ describe('israeliSourcesProvider', () => {
       expect(entry.title.he.length).toBeGreaterThan(5);
       expect(entry.snippet.en.length).toBeGreaterThan(20);
       expect(entry.snippet.he.length).toBeGreaterThan(20);
-      expect(entry.url).toMatch(/^https:\/\/(www\.)?(shvilist\.com|parks\.org\.il|tiulim\.net)\//);
+      expect(entry.url).toMatch(/^https:\/\/(www\.)?(shvilist\.com|parks\.org\.il|tiulim\.net|israelfishing\.co\.il)\//);
       expect(entry.keywords.length).toBeGreaterThan(2);
     }
   });

@@ -5,6 +5,7 @@
  * - shvilist.com  — Mediterranean fishing beaches guide
  * - parks.org.il  — Israel Nature and Parks Authority (official regulations)
  * - tiulim.net    — recommended fishing places in Israel
+ * - israelfishing.co.il — lure techniques and Israeli shore fishing guides
  *
  * The sites cannot be scraped live from the browser (CORS). Instead, a daily
  * GitHub Action (scripts/refresh-sources.mjs) fetches the pages at build time
@@ -46,6 +47,8 @@ const PARKS_URL =
   'https://www.parks.org.il/sea/%d7%93%d7%92%d7%99%d7%9d-%d7%97%d7%9b%d7%9d-%d7%a9%d7%95%d7%9e%d7%a8%d7%99%d7%9d-%d7%a2%d7%9c-%d7%94%d7%99%d7%9d/';
 const TIULIM_URL =
   'https://tiulim.net/%D7%9E%D7%A7%D7%95%D7%9E%D7%95%D7%AA-%D7%93%D7%99%D7%92-%D7%A9%D7%9E%D7%95%D7%9E%D7%9C%D7%A6%D7%99%D7%9D-%D7%91%D7%99%D7%A9%D7%A8%D7%90%D7%9C/';
+const ISRAEL_FISHING_JARJOUR_URL =
+  'https://israelfishing.co.il/%D7%9B%D7%AA%D7%91%D7%95%D7%AA/%D7%94%D7%9E%D7%93%D7%A8%D7%99%D7%9A-%D7%94%D7%A9%D7%9C%D7%9D-%D7%9C%D7%92%D7%A8%D7%92%D7%95%D7%A8/';
 
 export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   // ---- shvilist.com — Mediterranean fishing beaches ----
@@ -290,6 +293,25 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
       he: 'אגם ירוחם, ממערב לעיר ירוחם בנגב, הוא אגם מלאכותי מוקף פארק עם פינות פיקניק ומסלולי אופניים. הרחצה בו אסורה, אך הוא יעד דיג פופולרי — נקודת דיג מפתיעה במדבר.',
     },
     keywords: ['ירוחם', 'yeruham', 'נגב', 'negev', 'מדבר', 'desert', 'אגם מלאכותי'],
+  },
+  // ---- israelfishing.co.il — lure retrieve (jarjour) guide ----
+  {
+    id: 'israelfishing-jarjour',
+    url: ISRAEL_FISHING_JARJOUR_URL,
+    pageId: 'israelfishing-jarjour',
+    title: {
+      en: 'Complete guide to jarjour (lure retrieve) — Israel Fishing',
+      he: 'המדריך השלם לג\'רג\'ור — Israel Fishing',
+    },
+    snippet: {
+      en: 'Jarjour (ז\'ירז\'ור) is dragging an artificial lure to mimic a wounded fish. Use light rods (5–25g), small reels (2000–2500), quality braid with 50–100cm fluoro leader (FG/PR knot — never through guides). Lure types: minnow (F floating / S sinking, twitch retrieve), metal jig (hops), topwater popper/pencil, soft plastic on jig head. Target: sea bass, bluefish, barracuda, sargo.',
+      he: 'ג\'רג\'ור (ז\'ירז\'ור) הוא גרירת דמוי-דג מלאכותי לדמות דג פצוע. מקלות light (5–25 גרם), סלילים 2000–2500, בד איכותי + מוביל פלואורו 50–100 ס"מ (קשר FG/PR — לא דרך המדריכים). סוגי דמויים: minnow (F צף / S שוקע, טוויץ\'), jig מתכת, topwater פופר/פנסיל, סיליקון על jig head. יעדים: לוקוס, גומבר, ברקודה, סרגוס.',
+    },
+    keywords: [
+      'ג\'רג\'ור', 'גרגור', 'ז\'ירז\'ור', 'jarjour', 'zirzur', 'lure', 'דמוי', 'minnow', 'topwater',
+      'popper', 'jig', 'סיליקון', 'soft plastic', 'retrieve', 'הובלה', 'בד', 'braid', 'מקל light',
+      'לוקוס', 'גומבר', 'ברקודה', 'סרגוס', 'spinning', 'artificial lure',
+    ],
   },
 ];
 

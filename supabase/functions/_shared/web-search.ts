@@ -16,9 +16,10 @@ export interface WebSearchResponse {
 /**
  * Trusted Israeli fishing sites always included in research:
  * parks.org.il (official INPA regulations), shvilist.com (Mediterranean
- * fishing beaches guide), tiulim.net (recommended fishing places).
+ * fishing beaches guide), tiulim.net (recommended fishing places),
+ * israelfishing.co.il (lure/jarjour techniques).
  */
-const ISRAELI_FISHING_DOMAINS = ['parks.org.il', 'shvilist.com', 'tiulim.net'];
+const ISRAELI_FISHING_DOMAINS = ['parks.org.il', 'shvilist.com', 'tiulim.net', 'israelfishing.co.il'];
 
 function fishingQuery(base: string, language: string, locationHint?: string): string {
   const parts = [base.trim()];

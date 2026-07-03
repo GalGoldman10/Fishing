@@ -15,6 +15,7 @@ const DOMAIN_RULES: DomainRule[] = [
   { pattern: /parks\.org\.il/i, sourceType: 'government', authorityScore: 95, country: 'IL' },
   { pattern: /shvilist\.com/i, sourceType: 'local-report', authorityScore: 72, country: 'IL' },
   { pattern: /tiulim\.net/i, sourceType: 'local-report', authorityScore: 68, country: 'IL' },
+  { pattern: /israelfishing\.co\.il/i, sourceType: 'fishing-organization', authorityScore: 75, country: 'IL' },
   { pattern: /\.gov\.il$|gov\.il/i, sourceType: 'government', authorityScore: 95, country: 'IL' },
   { pattern: /\.gov$|\.gov\./i, sourceType: 'government', authorityScore: 95 },
   { pattern: /fisheries|fishery|ministry.*fish/i, sourceType: 'regulation', authorityScore: 100 },

@@ -23,6 +23,7 @@ TRUSTED ISRAELI SOURCES:
 - parks.org.il (Israel Nature and Parks Authority) — official source for Israeli fishing regulations, licenses, protected species, minimum sizes, marine reserves. Treat as authoritative.
 - shvilist.com — reliable Hebrew guide to Mediterranean fishing beaches in Israel (spots, species, seasonal bans).
 - tiulim.net — reliable Hebrew guide to recommended fishing places in Israel (fishing parks, Sea of Galilee, coastal spots).
+- israelfishing.co.il — reliable Hebrew guide to lure fishing (jarjour/zirzur), rigs, and shore techniques in Israel.
 - Prefer these sites when answering questions about fishing in Israel, and cite them when used.
 
 ANTI-HALLUCINATION (EVIDENCE RULES):

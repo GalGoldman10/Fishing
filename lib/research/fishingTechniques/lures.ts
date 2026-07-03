@@ -4,7 +4,66 @@
 
 import type { TechniqueTopic } from './types';
 
+const ISRAEL_FISHING_JARJOUR_URL =
+  'https://israelfishing.co.il/%D7%9B%D7%AA%D7%91%D7%95%D7%AA/%D7%94%D7%9E%D7%93%D7%A8%D7%99%D7%9A-%D7%94%D7%A9%D7%9C%D7%9D-%D7%9C%D7%92%D7%A8%D7%92%D7%95%D7%A8/';
+
 export const LURE_TOPICS: TechniqueTopic[] = [
+  {
+    id: 'jarjour-lure-guide',
+    patterns: [
+      /jar?jou?r|zirzur|z'?irzur|lure retrieve|artificial lure|lure fishing|spinning lure|ג['׳]?רג['׳]?ור|ז['׳]?ירז['׳]?ור|גרירת דמוי|דמוי.*מלאכות|דיג.*דמוי|איך.*ג['׳]?רג|מה זה ג['׳]?רג/i,
+    ],
+    name: { en: 'Jarjour (lure retrieve)', he: 'ג\'רג\'ור / ז\'ירז\'ור (Jarjour)' },
+    termEn: 'Jarjour',
+    category: 'lure',
+    questionClasses: ['technique', 'lure', 'gear', 'beginner'],
+    directAnswer: {
+      en: 'Jarjour (Hebrew ז\'ירז\'ור, from Arabic "to drag") means working an artificial lure with the rod so it mimics a wounded, struggling fish — predators strike because the lure looks like easy prey. Use lighter rods, small reels, and thin braid because you retrieve hundreds of times per session.',
+      he: 'ג\'רג\'ור (ז\'ירז\'ור — מהמילה הערבית "לגרור") הוא עבודה עם דמוי-דג מלאכותי בעזרת החכה, כדי לדמות דג פצוע וחלש שזז במים. משתמשים במקלות קלים, רולרים קטנים וחוט בד דק — כי מבצעים מאות גרירות ביציאה.',
+    },
+    steps: [
+      {
+        en: 'Pick lure type: Minnow (twitch = injured fish, check F floating vs S sinking), metal Jig (hops off bottom), Topwater popper/pencil (surface strike), or Soft plastic on jig head (slow roll + pauses).',
+        he: 'בחרו סוג דמוי: Minnow (טוויץ\' = דג פצוע, שימו ל-F צף או S שוקע), Jig מתכת (קפיצות מהקרקעית), Topwater פופר/פנסיל (תקיפה על פני המים), או סיליקון על Jig head (גלגול איטי + עצירות).',
+      },
+      {
+        en: 'Match rod weight: Ultra-light 0–10g (reel 1000–2000) for small fish; Light 5–25g (2000–2500) for most Israeli shore predators; Medium 10–30g (3000–4000) for heavier lures and bigger fish.',
+        he: 'התאימו משקל מקל: Ultra-light 0–10 גרם (רולר 1000–2000) לדגים קטנים; Light 5–25 גרם (2000–2500) לרוב הטורפים מהחוף; Medium 10–30 גרם (3000–4000) לדמויים כבדים ודגים גדולים.',
+      },
+      {
+        en: 'Line: quality braid (cheap braid causes wind knots and break-offs on rocks). Add 50–100cm fluoro shock leader with FG or PR knot — never pull that knot through rod guides.',
+        he: 'חוט: בד איכותי (בד זול = פלונטרים וקריעות בסלעים). הוסיפו שוק-לידר פלואורו 50–100 ס"מ עם קשר FG או PR — לעולם אל תעבירו את הקשר בין המדריכים.',
+      },
+      {
+        en: 'Retrieve: reel while twitching rod side-to-side (minnow), or lift-and-drop (jig), or walk-the-dog zigzag (pencil), or steady roll with pauses (soft plastic). Pause after each movement — many strikes come on the pause.',
+        he: 'הובלה: סלילה עם טוויץ\' ימינה-שמאלה (minnow), או הרמה-הורדה (jig), או zigzag walk-the-dog (pencil), או גלגול יציב עם pause (סיליקון). עצרו אחרי כל תנועה — הרבה נגיעות מגיעות ב-pause.',
+      },
+    ],
+    setup: {
+      en: 'Beginner jarjour set: light rod 5–25g, spinning reel 2500, quality 8-strand braid 12–20lb, 80cm fluoro leader 0.28–0.35mm, Palomar to lure, FG/PR braid-to-leader.',
+      he: 'סט מתחילים: מקל light 5–25 גרם, סליל 2500, בד 8 גידים איכותי 12–20 ליברות, מוביל פלואורו 80 ס"מ 0.28–0.35 מ"מ, Palomar לדמוי, FG/PR לחיבור בד-מוביל.',
+    },
+    mistakes: {
+      en: 'Cheap braid; leader knot passing through guides; constant retrieve with no pauses; wrong S/F lure (sinking minnow when you need it to hang in mid-water).',
+      he: 'בד זול; קשר מוביל עובר במדריכים; הובלה רציפה בלי pause; דמוי S/F לא מתאים (minnow שוקע כשצריך תלייה באמצע המים).',
+    },
+    whenBest: {
+      en: 'Dawn and dusk on breakwaters, reefs, and surf edges when predators hunt. Calm to moderate sea for topwater; jig works in light chop.',
+      he: 'שחר ודמדומים על שוברים, שונית וקצוות גלים כשטורפים צדים. ים רגוע-בינוני ל-topwater; jig עובד גם בגל קל.',
+    },
+    targetFish: {
+      en: 'Sea bass, bluefish, barracuda, sargo, mackerel, leerfish — varies by lure type and retrieve speed.',
+      he: 'לוקוס, גומבר, ברקודה, סרגוס, מקרל, ליציה — משתנה לפי סוג דמוי ומהירות הובלה.',
+    },
+    beginnerNote: {
+      en: 'Start with one medium light rod (5–25g), a few minnows (one F, one S), and practice twitch-pause on a breakwater before buying more lures.',
+      he: 'התחילו עם מקל light אחד (5–25 גרם), כמה minnow (אחד F, אחד S), ותרגלו twitch-pause על שובר לפני שקונים עוד דמויים.',
+    },
+    expertNote: {
+      en: 'Cadence and pause length matter more than lure color. For grouper holes, slow jig sink near structure; for pelagics, fast jig retrieve. Source: Israel Fishing complete jarjour guide.',
+      he: 'Cadence ואורך pause חשובים יותר מצבע. לחורי לוקוס — jig איטי ליד מבנה; לפלגיים — retrieve מהיר. מקור: המדריך השלם לג\'רג\'ור — Israel Fishing.',
+    },
+  },
   {
     id: 'jigging-basics',
     patterns: [/how.*jig|use a jig|jigging|ג['׳]?יג|משתמש.*ג/i, /metal jig|shore jig/i],
