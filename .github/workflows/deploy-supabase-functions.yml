@@ -13,11 +13,18 @@ jobs:
         with:
           version: latest
 
+      # Do NOT export SUPABASE_PROJECT_REF as an env var — the CLI treats
+      # SUPABASE_* variables as config overrides and throws ProjectConfigParseError.
       - name: Deploy Edge Functions
-        run: |
-          supabase functions deploy fishing-assistant --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy fishing-research --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy web-search --project-ref "$SUPABASE_PROJECT_REF"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          PROJECT_REF="${{ secrets.SUPABASE_PROJECT_REF }}"
+          if [ -z "$PROJECT_REF" ]; then
+            echo "Missing GitHub secret SUPABASE_PROJECT_REF"
+            exit 1
+          fi
+          supabase functions deploy fishing-assistant --project-ref "$PROJECT_REF" --no-verify-jwt
+          supabase functions deploy fishing-research --project-ref "$PROJECT_REF" --no-verify-jwt
+          supabase functions deploy web-search --project-ref "$PROJECT_REF" --no-verify-jwt

@@ -20,5 +20,23 @@ port = 54323
 enabled = true
 site_url = "http://localhost:3000"
 
-[functions]
+[functions.fishing-assistant]
+verify_jwt = false
+
+[functions.fishing-research]
+verify_jwt = false
+
+[functions.web-search]
+verify_jwt = false
+
+[functions.marine-conditions]
+verify_jwt = false
+
+[functions.place-enrichment]
+verify_jwt = false
+
+[functions.trip-notifications]
+verify_jwt = false
+
+[functions.account-delete]
 verify_jwt = false
