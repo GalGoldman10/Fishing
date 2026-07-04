@@ -12,6 +12,7 @@ export interface RunAssistantInput {
   location?: { latitude: number; longitude: number };
   spotId?: string;
   locationHint?: string;
+  recentMessages?: string[];
 }
 
 export interface RunAssistantOutput {
@@ -89,6 +90,7 @@ export async function runFishingAssistant(input: RunAssistantInput): Promise<Run
     input.message,
     input.language,
     input.locationHint,
+    input.recentMessages ?? [],
   );
 
   if (research.refused) {
@@ -112,6 +114,14 @@ export async function runFishingAssistant(input: RunAssistantInput): Promise<Run
   const contextBlocks: string[] = [
     formatResearchForPrompt(research),
   ];
+
+  if (input.recentMessages?.length) {
+    const historyBlock = input.recentMessages
+      .slice(-6)
+      .map((text, index) => `${index + 1}. ${text}`)
+      .join('\n');
+    contextBlocks.unshift(`=== RECENT CONVERSATION ===\n${historyBlock}`);
+  }
 
   if (input.location) {
     const nearby = await executeTool('get_nearby_spots', {

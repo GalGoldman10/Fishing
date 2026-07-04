@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
   let language = 'en';
   try {
     const body = await req.json();
-    const { message, sessionId, location, spotId, locationHint } = body;
+    const { message, sessionId, location, spotId, locationHint, recentMessages } = body;
     language = body.language ?? 'en';
 
     if (!message || message.length > 4000) {
@@ -115,6 +115,9 @@ Deno.serve(async (req) => {
         location,
         spotId,
         locationHint,
+        recentMessages: Array.isArray(recentMessages)
+          ? recentMessages.filter((item: unknown): item is string => typeof item === 'string').slice(-8)
+          : undefined,
       });
     } catch (assistantErr) {
       console.warn('Full assistant failed, trying simple ChatGPT:', assistantErr);

@@ -38,6 +38,29 @@ describe('scopeGuard', () => {
     expect(validateFishingScope('איפה אפשר לתפוס בורי?', 'he').allowed).toBe(true);
   });
 
+  it('allows general fishing follow-ups with לדוג', () => {
+    expect(
+      validateFishingScope('באופן כללי לדוג באיזור המרכז', 'he').allowed,
+    ).toBe(true);
+  });
+
+  it('allows short location follow-ups when prior chat was about fishing', () => {
+    const prior = [
+      'איפה יש פארקי דייג באיזור המרכז?',
+      'לא נמצאו פארקי דייג ספציפיים באיזור המרכז.',
+    ];
+    expect(
+      validateFishingScope('ומה עם חיפה?', 'he', { conversationContext: prior }).allowed,
+    ).toBe(true);
+  });
+
+  it('still refuses unrelated follow-ups even with fishing context', () => {
+    const prior = ['מה הפיתיון הכי טוב לדיג חוף?'];
+    expect(
+      validateFishingScope('Who won the election?', 'en', { conversationContext: prior }).allowed,
+    ).toBe(false);
+  });
+
   it('answers where to catch mullet end-to-end', async () => {
     const result = await runFishingResearch({
       question: 'איפה אפשר לתפוס בורי?',

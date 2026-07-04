@@ -3,16 +3,11 @@
  */
 
 import { searchAllProviders, type RawSearchResult, type FishingSearchQuery } from './providers.ts';
-
-const FISHING_TERMS = [
-  'fish', 'fishing', 'angler', 'bait', 'lure', 'rod', 'דיג', 'דייג', 'דג', 'דגים', 'חכה', 'פיתיון',
-  'ברקודה', 'לוקוס', 'סרגוס', 'גומבר', 'בורי', 'דניס', 'מינימום', 'בסשן', 'תקנה', 'לתפוס', 'זירזור',
-  'barracuda', 'grouper', 'species', 'regulation', 'catch', 'shore', 'חוף', 'מזח',
-];
+import { isFishingQuestion, validateFishingScope } from './scopeGuard.ts';
 
 function isFishingRelated(text: string): boolean {
   if (text.toLowerCase().includes('phishing')) return false;
-  return FISHING_TERMS.some((t) => text.toLowerCase().includes(t) || text.includes(t));
+  return isFishingQuestion(text, 'en') || isFishingQuestion(text, 'he');
 }
 
 function generateQueries(question: string, language: string, locationHint?: string): FishingSearchQuery[] {
@@ -85,21 +80,16 @@ export interface ServerResearchOutput {
 const REFUSAL_EN = 'This assistant specializes only in fishing and fishing-related information. Please ask me about a fishing location, fish species, equipment, technique, conditions, or regulations.';
 const REFUSAL_HE = 'עוזר זה מתמחה רק בדיג ובמידע הקשור לדיג. שאל אותי על מקום דיג, מין דג, ציוד, טכניקה, תנאים או תקנות.';
 
-function validateScope(question: string, _language: string): boolean {
-  if (isFishingRelated(question)) return true;
-  if (/beach|חוף|pier|מזח|lake|אגם|marina|נמל|minimum|size|גודל|מינימום/i.test(question)) return true;
-  return false;
-}
-
 export async function runServerResearch(
   question: string,
   language: string,
   locationHint?: string,
+  conversationContext: string[] = [],
 ): Promise<ServerResearchOutput> {
   const now = new Date().toISOString();
   const lang = language === 'he' ? 'he' : 'en';
 
-  if (!validateScope(question, lang)) {
+  if (!validateFishingScope(question, lang, conversationContext)) {
     return {
       question, language: lang,
       directAnswer: lang === 'he' ? REFUSAL_HE : REFUSAL_EN,

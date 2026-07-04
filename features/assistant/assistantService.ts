@@ -14,6 +14,7 @@ export interface ChatRequest {
   location?: { latitude: number; longitude: number };
   spotId?: string;
   locationHint?: string;
+  recentMessages?: string[];
 }
 
 export interface ChatResponse {
@@ -139,6 +140,7 @@ async function getResearchEnhancedResponse(request: ChatRequest): Promise<ChatRe
     location: request.location,
     locationHint,
     spotId: request.spotId,
+    conversationContext: request.recentMessages,
   });
 
   if (researchAnswer.refused) {

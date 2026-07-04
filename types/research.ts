@@ -177,6 +177,7 @@ export interface ResearchOrchestratorInput {
   locationHint?: string;
   spotId?: string;
   country?: string;
+  conversationContext?: string[];
 }
 
 export interface ResearchOrchestratorOutput {

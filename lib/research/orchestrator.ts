@@ -67,7 +67,9 @@ export async function runFishingResearch(
   const question = termNormalization.normalizedQuestion;
 
   // 1. Topic restriction — refuse non-fishing questions politely.
-  const scope = validateFishingScope(question, language);
+  const scope = validateFishingScope(question, language, {
+    conversationContext: input.conversationContext,
+  });
   if (!scope.allowed) {
     const refusal: FishingAnswer = {
       question: input.question,

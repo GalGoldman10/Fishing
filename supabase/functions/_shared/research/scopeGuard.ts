@@ -1,9 +1,7 @@
 /**
- * Refuses non-fishing questions with a polite localized message.
+ * Server-side fishing scope guard (Deno).
+ * Keep keyword/pattern lists aligned with lib/research/scopeGuard.ts.
  */
-
-import { normalizeFishingQuery } from '@/lib/research/fishingTermNormalization';
-import { detectTargetSpecies } from '@/lib/research/fishingKnowledge';
 
 const FISHING_KEYWORDS_EN = [
   'fish', 'fishing', 'angler', 'angling', 'bait', 'lure', 'rod', 'reel', 'tackle',
@@ -60,19 +58,6 @@ const FISHING_INTENT_PATTERNS_EN = [
   /best place.*catch/i,
 ];
 
-const BLOCKED_TOPICS_EN = [
-  /politic/i, /election/i, /celebrity/i, /movie/i, /recipe(?!.*bait)/i,
-  /cryptocurrency/i, /bitcoin/i, /stock market/i, /gambling/i,
-];
-
-function textMatchesFishingKeywords(question: string, language: 'en' | 'he'): boolean {
-  const text = question.toLowerCase();
-  const keywords = language === 'he' ? FISHING_KEYWORDS_HE : FISHING_KEYWORDS_EN;
-  return keywords.some((kw) =>
-    language === 'he' ? question.includes(kw) : text.includes(kw.toLowerCase()),
-  );
-}
-
 const FOLLOWUP_PATTERNS_HE = [
   /^עוד\b/,
   /^ומה\b/,
@@ -96,6 +81,19 @@ const FOLLOWUP_PATTERNS_EN = [
   /^can you\b/i,
 ];
 
+const BLOCKED_TOPICS_EN = [
+  /politic/i, /election/i, /celebrity/i, /movie/i, /recipe(?!.*bait)/i,
+  /cryptocurrency/i, /bitcoin/i, /stock market/i, /gambling/i,
+];
+
+function textMatchesFishingKeywords(question: string, language: 'en' | 'he'): boolean {
+  const text = question.toLowerCase();
+  const keywords = language === 'he' ? FISHING_KEYWORDS_HE : FISHING_KEYWORDS_EN;
+  return keywords.some((kw) =>
+    language === 'he' ? question.includes(kw) : text.includes(kw.toLowerCase()),
+  );
+}
+
 function isFollowUpContinuation(question: string, language: 'en' | 'he'): boolean {
   const patterns = language === 'he' ? FOLLOWUP_PATTERNS_HE : FOLLOWUP_PATTERNS_EN;
   if (patterns.some((p) => p.test(question.trim()))) return true;
@@ -107,17 +105,11 @@ function isFollowUpContinuation(question: string, language: 'en' | 'he'): boolea
   return question.trim().length <= 120 && locationPatterns.some((p) => p.test(question));
 }
 
-function hasFishingConversationContext(messages: string[], language: 'en' | 'he'): boolean {
-  return messages.some((message) => isFishingQuestion(message, language));
-}
-
 export function isFishingQuestion(question: string, language: 'en' | 'he'): boolean {
   const text = question.toLowerCase();
   if (text.includes('phishing')) return false;
 
   if (textMatchesFishingKeywords(question, language)) return true;
-
-  if (detectTargetSpecies(question)) return true;
 
   const intentPatterns = language === 'he' ? FISHING_INTENT_PATTERNS_HE : FISHING_INTENT_PATTERNS_EN;
   if (intentPatterns.some((p) => p.test(question))) return true;
@@ -125,13 +117,6 @@ export function isFishingQuestion(question: string, language: 'en' | 'he'): bool
   const weatherPatterns = language === 'he' ? FISHING_WEATHER_PATTERNS_HE : FISHING_WEATHER_PATTERNS_EN;
   if (weatherPatterns.some((p) => p.test(question))) return true;
 
-  // Recognize slang/typos via the term normalization layer (ignore weak false positives).
-  const norm = normalizeFishingQuery(question, language);
-  if (norm.matches.some((m) => m.confidence !== 'low' && m.score >= 0.72)) return true;
-
-  if (textMatchesFishingKeywords(norm.normalizedQuestion, language)) return true;
-
-  // Short location-style questions may omit "fishing" explicitly
   const locationPatterns = [
     /beach|חוף|marina|נמל|pier|מזח|lake|אגם|river|נהר|harbor/i,
     /palmachim|tel aviv|haifa|חיפה|אילת|herzliya|ashdod|ashkelon/i,
@@ -151,31 +136,21 @@ export function getRefusalMessage(language: 'en' | 'he'): string {
     : 'This assistant specializes only in fishing and fishing-related information. Please ask me about a fishing location, fish species, equipment, technique, conditions, or regulations.';
 }
 
-export interface FishingScopeOptions {
-  /** Recent chat turns (user + assistant) to allow short fishing follow-ups. */
-  conversationContext?: string[];
-}
-
 export function validateFishingScope(
   question: string,
   language: 'en' | 'he',
-  options: FishingScopeOptions = {},
-): { allowed: boolean; reason?: string } {
-  if (isBlockedTopic(question)) {
-    return { allowed: false, reason: getRefusalMessage(language) };
-  }
-  if (isFishingQuestion(question, language)) {
-    return { allowed: true };
-  }
+  conversationContext: string[] = [],
+): boolean {
+  if (isBlockedTopic(question)) return false;
+  if (isFishingQuestion(question, language)) return true;
 
-  const context = options.conversationContext ?? [];
   if (
-    context.length > 0 &&
-    hasFishingConversationContext(context, language) &&
+    conversationContext.length > 0 &&
+    conversationContext.some((message) => isFishingQuestion(message, language)) &&
     isFollowUpContinuation(question, language)
   ) {
-    return { allowed: true };
+    return true;
   }
 
-  return { allowed: false, reason: getRefusalMessage(language) };
+  return false;
 }

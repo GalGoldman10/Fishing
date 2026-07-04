@@ -107,6 +107,7 @@ export async function performFishingResearch(
           locationHint: input.locationHint,
           location: input.location,
           spotId: input.spotId,
+          recentMessages: input.conversationContext,
         },
       });
       if (!error && data && !data.error) {

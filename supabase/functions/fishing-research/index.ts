@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { question, language = 'en', locationHint, location, spotId } = body;
+    const { question, language = 'en', locationHint, location, spotId, recentMessages } = body;
 
     if (!question || typeof question !== 'string') {
       return new Response(JSON.stringify({ error: 'question is required' }), {
@@ -23,7 +23,10 @@ Deno.serve(async (req) => {
     }
 
     const hint = locationHint ?? (location ? 'Israel Mediterranean coast' : undefined);
-    const research = await runServerResearch(question, language, hint);
+    const context = Array.isArray(recentMessages)
+      ? recentMessages.filter((item: unknown): item is string => typeof item === 'string').slice(-8)
+      : [];
+    const research = await runServerResearch(question, language, hint, context);
 
     return new Response(JSON.stringify({
       ...research,
