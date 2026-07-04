@@ -128,6 +128,10 @@
     "localKnowledge": "Local engine",
     "chatGptHint": "Ask anything — when ChatGPT is configured on the server, answers come from OpenAI with fishing sources.",
     "localFallback": "Local engine answer — ChatGPT unavailable. Deploy Edge Functions and verify your Supabase URL.",
+    "siteDataBadge": "Live spot data",
+    "siteDataSource": "Spot page & live sea conditions",
+    "siteDataFreshness": "Live data retrieved at {{time}}",
+    "viewSpotPage": "View {{name}} on the map",
     "freshness": "Checked {{count}} sources at {{time}}",
     "suggestions": [
       "What can I catch at Palmachim beach?",

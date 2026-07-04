@@ -406,21 +406,28 @@ export function buildLocalAnswer(
     if (baitTips) sections.push(baitTips);
   } else if (asksConditions) {
     usedLocalDb = true;
-    const c = DEMO_CONDITIONS;
-    const conditionsSummary = c.localizedSummary?.[language] ?? c.summary;
-    const spotIntro = spot
-      ? isHe
-        ? `לגבי דיג ב${spotName} עכשיו: `
-        : `About fishing at ${spotName} right now: `
-      : '';
-    sections.push(
-      isHe
-        ? `${spotIntro}תנאים נוכחיים (הדגמה): ${conditionsSummary} רוח ${c.windSpeed} קמ"ש מ${c.windDirection}, גלים ~${c.waveHeight}מ'. בדקו את כרטיס תנאי הים באפליקציה לנתונים חיים.`
-        : `${spotIntro}Current conditions (demo): ${conditionsSummary} Wind ${c.windSpeed} km/h ${c.windDirection}, waves ~${c.waveHeight}m. Check the live sea-conditions card in the app for real-time data.`,
-    );
-    if (habitat) {
-      sections.push(buildTimeSection(habitat, language));
-      usedSpotDb = !!spot;
+    usedSpotDb = !!spot;
+    if (spot && isLiveConditionsQuestion) {
+      sections.push(
+        isHe
+          ? `תשובה ישירה: תנאים חיים ל${spotName} — גלים, רוח והתאמה לדיג (Open-Meteo).`
+          : `Direct answer: Live conditions for ${spotName} — waves, wind, and fishing suitability (Open-Meteo).`,
+      );
+      if (habitat) sections.push(buildTimeSection(habitat, language));
+    } else {
+      const c = DEMO_CONDITIONS;
+      const conditionsSummary = c.localizedSummary?.[language] ?? c.summary;
+      const spotIntro = spot
+        ? isHe
+          ? `לגבי דיג ב${spotName} עכשיו: `
+          : `About fishing at ${spotName} right now: `
+        : '';
+      sections.push(
+        isHe
+          ? `${spotIntro}תנאים נוכחיים (הדגמה): ${conditionsSummary} רוח ${c.windSpeed} קמ"ש מ${c.windDirection}, גלים ~${c.waveHeight}מ'. בדקו את כרטיס תנאי הים באפליקציה לנתונים חיים.`
+          : `${spotIntro}Current conditions (demo): ${conditionsSummary} Wind ${c.windSpeed} km/h ${c.windDirection}, waves ~${c.waveHeight}m. Check the live sea-conditions card in the app for real-time data.`,
+      );
+      if (habitat) sections.push(buildTimeSection(habitat, language));
     }
   } else if (target && (asksSpecies || /how to|how do i|איך/i.test(question))) {
     // Species-target question: "How do I catch bream?"

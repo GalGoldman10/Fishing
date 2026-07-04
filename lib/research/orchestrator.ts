@@ -31,6 +31,8 @@ import { resolveLocation } from '@/lib/research/locationResolver';
 import { sanitizeWebContent, isSafeUrl } from '@/lib/research/contentSanitizer';
 import { getCachedResearch, researchCacheKey, setCachedResearch } from '@/lib/research/researchCache';
 import { getLiveConditionsAdvice } from '@/lib/research/conditionsAdvisor';
+import { findSpotFromQuestion } from '@/lib/research/spotMatcher';
+import { DEMO_SPOTS } from '@/lib/mock/demoData';
 import { normalizeFishingQuery } from '@/lib/research/fishingTermNormalization';
 import type { FishingSearchProvider } from '@/lib/research/providers/types';
 import { wikipediaProvider } from '@/lib/research/providers/wikipedia';
@@ -170,10 +172,34 @@ export async function runFishingResearch(
   );
 
   // 9. Live marine conditions for current-condition questions with a
-  //    resolved coastal/lake location — real data, explained, never invented.
-  if (understanding.needsWeather && resolved) {
+  //    resolved coastal spot — real data, explained, never invented.
+  const matchedSpot =
+    findSpotFromQuestion(question, input.locationHint) ??
+    (input.spotId ? DEMO_SPOTS.find((s) => s.id === input.spotId) ?? null : null);
+
+  const marineLocation = matchedSpot
+    ? (() => {
+        const coords = matchedSpot.marineCoordinates ?? {
+          latitude: matchedSpot.latitude,
+          longitude: matchedSpot.longitude,
+        };
+        return {
+          id: matchedSpot.id,
+          nameEn: matchedSpot.name,
+          nameHe: matchedSpot.localizedNames?.he ?? matchedSpot.name,
+          city: matchedSpot.region,
+          region: 'mediterranean' as const,
+          waterType: 'saltwater' as const,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          matchType: 'exact' as const,
+        };
+      })()
+    : resolved;
+
+  if (understanding.needsWeather && marineLocation) {
     try {
-      const advice = await getLiveConditionsAdvice(resolved, language);
+      const advice = await getLiveConditionsAdvice(marineLocation, language);
       enriched.conditions = advice.conditions;
       enriched.directAnswer = `${advice.explanation}\n\n${enriched.directAnswer}`;
       enriched.summary = enriched.directAnswer;

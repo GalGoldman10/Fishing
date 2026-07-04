@@ -87,7 +87,7 @@ describe('localAnswerEngine', () => {
 
     expect(a1.directAnswer).not.toBe(a2.directAnswer);
     // "what do you think about fishing now" → conditions answer
-    expect(a1.directAnswer).toContain('תנאים');
+    expect(a1.directAnswer).toMatch(/תנאים|Open-Meteo/i);
     // "what should I bring" → equipment answer
     expect(a2.directAnswer).toMatch(/ציוד|חכה|סליל/);
   });
@@ -102,6 +102,6 @@ describe('localAnswerEngine', () => {
   it('answers "is it worth going fishing now" with conditions, not a generic overview', () => {
     const q = 'Is it worth going fishing at Gordon beach right now?';
     const result = buildLocalAnswer(q, 'en', understandQuery(q, 'en'), []);
-    expect(result.directAnswer).toContain('Current conditions');
+    expect(result.directAnswer).toMatch(/Live conditions|Open-Meteo/i);
   });
 });

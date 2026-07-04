@@ -41,7 +41,7 @@ describe('Example 2: can I fish today in Ashdod', () => {
   const result = ask('Can I fish today in Ashdod beach?');
 
   it('addresses current conditions and best time', () => {
-    expect(result.directAnswer).toContain('Current conditions');
+    expect(result.directAnswer).toMatch(/Live conditions|Open-Meteo/i);
     expect(result.directAnswer).toContain('Best time and conditions:');
   });
 

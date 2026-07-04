@@ -2,6 +2,7 @@ import { isAiChatAvailable } from '@/lib/config/env';
 import { supabase } from '@/lib/api/supabase';
 import { FishingAssistantResponse } from '@/lib/validation/schemas';
 import { performFishingResearch } from '@/features/assistant/researchService';
+import { tryAnswerSpotSiteQuestion } from '@/lib/research/spotSiteAnswer';
 import i18n from '@/lib/localization/i18n';
 import { formatDateTime } from '@/lib/localization/format';
 import type { FishingAnswer } from '@/types/research';
@@ -24,6 +25,8 @@ export interface ChatResponse {
   aiPowered?: boolean;
   /** Set when ChatGPT was requested but local engine answered instead. */
   aiFallbackReason?: 'not_configured' | 'edge_error';
+  /** Live marine / spot-page data from the site database. */
+  fromSiteData?: boolean;
 }
 
 const AI_NOT_CONFIGURED = /OPENAI_API_KEY|not configured|ChatGPT לא מוגדר/i;
@@ -74,6 +77,23 @@ function toStructured(research: FishingAnswer): FishingAssistantResponse {
 }
 
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
+  const siteAnswer = await tryAnswerSpotSiteQuestion({
+    question: request.message,
+    language: request.language,
+    spotId: request.spotId,
+    locationHint: request.locationHint,
+  });
+  if (siteAnswer) {
+    return {
+      answer: siteAnswer.answer,
+      structured: siteAnswer.structured,
+      research: siteAnswer.research,
+      webSearchUsed: false,
+      aiPowered: false,
+      fromSiteData: true,
+    };
+  }
+
   if (isAiChatAvailable()) {
     try {
       const { data, error } = await supabase.functions.invoke('fishing-assistant', {
