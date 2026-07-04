@@ -1,5 +1,4 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { SYSTEM_PROMPT, getModel } from '../_shared/system-prompt.ts';
 import { checkRateLimit, getServiceClient } from '../_shared/tools.ts';
 import { runFishingAssistant } from '../_shared/assistant-runner.ts';
 
@@ -7,6 +6,47 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+async function tryCreateSession(
+  supabase: ReturnType<typeof getServiceClient>,
+  userId: string | null,
+  language: string,
+  message: string,
+  sessionId?: string,
+): Promise<string | undefined> {
+  if (sessionId) return sessionId;
+  try {
+    const { data: session } = await supabase.from('chat_sessions').insert({
+      user_id: userId,
+      language,
+      title: message.slice(0, 50),
+    }).select('id').single();
+    return session?.id;
+  } catch (err) {
+    console.warn('chat_sessions unavailable, continuing without persistence:', err);
+    return undefined;
+  }
+}
+
+async function trySaveMessage(
+  supabase: ReturnType<typeof getServiceClient>,
+  sessionId: string | undefined,
+  role: 'user' | 'assistant',
+  text: string,
+  structured?: unknown,
+): Promise<void> {
+  if (!sessionId) return;
+  try {
+    await supabase.from('chat_messages').insert({
+      session_id: sessionId,
+      role,
+      text,
+      structured_content: structured ?? null,
+    });
+  } catch (err) {
+    console.warn('chat_messages unavailable:', err);
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,49 +64,44 @@ Deno.serve(async (req) => {
       });
     }
 
-    const authHeader = req.headers.get('Authorization');
-    const supabase = getServiceClient();
-    let userId: string | null = null;
-
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id ?? null;
-    }
-
-    const rateLimitId = userId ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
-    const allowed = await checkRateLimit(rateLimitId, 'fishing-assistant', userId ? 50 : 10);
-    if (!allowed) {
-      return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
-        status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    let currentSessionId = sessionId;
-    if (!currentSessionId) {
-      const { data: session } = await supabase.from('chat_sessions').insert({
-        user_id: userId,
-        language,
-        title: message.slice(0, 50),
-      }).select('id').single();
-      currentSessionId = session?.id;
-    }
-
-    await supabase.from('chat_messages').insert({
-      session_id: currentSessionId,
-      role: 'user',
-      text: message,
-    });
-
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiKey) {
       return new Response(JSON.stringify({
-        answer: 'AI assistant is not configured. Please set OPENAI_API_KEY and WEB_SEARCH_PROVIDER on the server.',
-        sessionId: currentSessionId,
+        answer: language === 'he'
+          ? 'ChatGPT לא מוגדר בשרת. הגדר OPENAI_API_KEY ב-Supabase secrets.'
+          : 'AI assistant is not configured. Set OPENAI_API_KEY in Supabase secrets.',
+        aiPowered: false,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    let userId: string | null = null;
+    let currentSessionId = sessionId as string | undefined;
+    let supabase: ReturnType<typeof getServiceClient> | null = null;
+
+    try {
+      supabase = getServiceClient();
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user } } = await supabase.auth.getUser(token);
+        userId = user?.id ?? null;
+      }
+
+      const rateLimitId = userId ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
+      const allowed = await checkRateLimit(rateLimitId, 'fishing-assistant', userId ? 50 : 10);
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      currentSessionId = await tryCreateSession(supabase, userId, language, message, currentSessionId);
+      await trySaveMessage(supabase, currentSessionId, 'user', message);
+    } catch (err) {
+      console.warn('Supabase DB unavailable, running ChatGPT without persistence:', err);
     }
 
     const result = await runFishingAssistant({
@@ -77,12 +112,9 @@ Deno.serve(async (req) => {
       locationHint,
     });
 
-    await supabase.from('chat_messages').insert({
-      session_id: currentSessionId,
-      role: 'assistant',
-      text: result.answer,
-      structured_content: result.structured ?? null,
-    });
+    if (supabase) {
+      await trySaveMessage(supabase, currentSessionId, 'assistant', result.answer, result.structured);
+    }
 
     return new Response(
       JSON.stringify({
@@ -90,6 +122,7 @@ Deno.serve(async (req) => {
         sessionId: currentSessionId,
         structured: result.structured,
         webSearchUsed: result.webSearchUsed,
+        aiPowered: true,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );

@@ -1,4 +1,4 @@
-import { isMockMode, env } from '@/lib/config/env';
+import { isAiChatAvailable } from '@/lib/config/env';
 import { supabase } from '@/lib/api/supabase';
 import { FishingAssistantResponse } from '@/lib/validation/schemas';
 import { performFishingResearch } from '@/features/assistant/researchService';
@@ -21,7 +21,10 @@ export interface ChatResponse {
   structured?: FishingAssistantResponse;
   webSearchUsed?: boolean;
   research?: FishingAnswer;
+  aiPowered?: boolean;
 }
+
+const AI_NOT_CONFIGURED = /OPENAI_API_KEY|not configured/i;
 
 function toStructured(research: FishingAnswer): FishingAssistantResponse {
   return {
@@ -69,24 +72,35 @@ function toStructured(research: FishingAnswer): FishingAssistantResponse {
 }
 
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
-  const canUseEdgeAI =
-    env.supabaseUrl &&
-    env.supabaseAnonKey &&
-    env.supabaseUrl !== 'http://localhost:54321' &&
-    !env.supabaseAnonKey.includes('placeholder');
-
-  if (!isMockMode() || canUseEdgeAI) {
+  if (isAiChatAvailable()) {
     try {
       const { data, error } = await supabase.functions.invoke('fishing-assistant', {
         body: request,
       });
-      if (!error && data) return data as ChatResponse;
-    } catch {
-      // fall through to local research
+      if (!error && data) {
+        const payload = data as ChatResponse & { error?: string };
+        if (payload.error) {
+          throw new Error(payload.error);
+        }
+        if (AI_NOT_CONFIGURED.test(payload.answer ?? '')) {
+          return {
+            answer: payload.answer,
+            sessionId: payload.sessionId,
+            aiPowered: false,
+          };
+        }
+        return { ...payload, aiPowered: true };
+      }
+      if (error) {
+        console.warn('[chat] fishing-assistant error, falling back to local research:', error.message);
+      }
+    } catch (err) {
+      console.warn('[chat] fishing-assistant unavailable, falling back to local research:', err);
     }
   }
 
-  return getResearchEnhancedResponse(request);
+  const local = await getResearchEnhancedResponse(request);
+  return { ...local, aiPowered: false };
 }
 
 async function getResearchEnhancedResponse(request: ChatRequest): Promise<ChatResponse> {

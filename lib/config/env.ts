@@ -12,4 +12,19 @@ export const env = {
   appEnv: process.env.EXPO_PUBLIC_APP_ENV ?? 'development',
 } as const;
 
-export const isMockMode = () => env.useMockData || !env.supabaseUrl || !env.supabaseAnonKey;
+/** Supabase project URL + anon key are set (not placeholders). */
+export function hasSupabaseBackend(): boolean {
+  return Boolean(
+    env.supabaseUrl &&
+      env.supabaseAnonKey &&
+      !env.supabaseUrl.includes('placeholder') &&
+      !env.supabaseAnonKey.includes('placeholder'),
+  );
+}
+
+/** Chat can call the fishing-assistant edge function (OpenAI runs server-side). */
+export function isAiChatAvailable(): boolean {
+  return hasSupabaseBackend();
+}
+
+export const isMockMode = () => env.useMockData || !hasSupabaseBackend();

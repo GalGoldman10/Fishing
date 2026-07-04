@@ -124,6 +124,9 @@
     "webSearchHint": "אני מחפש באינטרנט ומשלב עם מסד הנתונים כדי לתת לך את התשובה הטובה ביותר.",
     "searchingWeb": "מחפש באינטרנט...",
     "searchedWeb": "חיפוש ברשת בוצע",
+    "poweredByChatGPT": "ChatGPT",
+    "localKnowledge": "מנוע מקומי",
+    "chatGptHint": "שאל כל שאלה — כש-ChatGPT מוגדר בשרת, התשובה תגיע מ-OpenAI עם מקורות דיג.",
     "freshness": "נבדקו {{count}} מקורות ב-{{time}}",
     "suggestions": [
       "מה אפשר ללכוד בחוף פלמחים?",

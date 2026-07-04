@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/components/common/ThemeProvider';
 import { Chip } from '@/components/common/SectionCard';
 import { sendChatMessage } from '@/features/assistant/assistantService';
+import { isAiChatAvailable } from '@/lib/config/env';
 import { FishingAssistantResponse } from '@/lib/validation/schemas';
 import { SourcePanel } from '@/components/fishing/SourcePanel';
 import { translateConfidence } from '@/lib/localization/labels';
@@ -30,6 +31,7 @@ interface Message {
   text: string;
   structured?: FishingAssistantResponse;
   webSearchUsed?: boolean;
+  aiPowered?: boolean;
   research?: FishingAnswer;
   /** Original question, set when the answer failed or lacked live data — enables retry. */
   retryQuestion?: string;
@@ -77,6 +79,7 @@ export default function ChatScreen() {
           text: response.answer,
           structured: response.structured,
           webSearchUsed: response.webSearchUsed,
+          aiPowered: response.aiPowered,
           research: response.research,
           retryQuestion: response.research?.searchFailed ? text : undefined,
         },
@@ -108,7 +111,9 @@ export default function ChatScreen() {
           <Text style={[styles.suggestedTitle, { color: colors.textMuted }]}>
             {t('chat.suggestedQuestions')}
           </Text>
-          <Text style={[styles.webHint, { color: colors.textSecondary }]}>{t('research.hint')}</Text>
+          <Text style={[styles.webHint, { color: colors.textSecondary }]}>
+            {isAiChatAvailable() ? t('chat.chatGptHint') : t('research.hint')}
+          </Text>
           {suggestions.map((q) => (
             <Pressable
               key={q}
@@ -143,9 +148,12 @@ export default function ChatScreen() {
                 : [styles.assistantBubble, { backgroundColor: colors.surface, borderColor: colors.borderLight }],
             ]}
           >
-            {item.role === 'assistant' && item.webSearchUsed && (
+            {item.role === 'assistant' && (
               <View style={styles.webBadge}>
-                <Chip label={t('chat.searchedWeb')} tone="web" />
+                {item.aiPowered && <Chip label={t('chat.poweredByChatGPT')} tone="web" />}
+                {!item.aiPowered && item.webSearchUsed && (
+                  <Chip label={t('chat.searchedWeb')} tone="web" />
+                )}
               </View>
             )}
             <Text style={{ color: item.role === 'user' ? '#fff' : colors.text, ...typography.body }}>

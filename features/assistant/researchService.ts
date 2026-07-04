@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '@/lib/api/supabase';
-import { env } from '@/lib/config/env';
+import { hasSupabaseBackend } from '@/lib/config/env';
 import i18n from '@/lib/localization/i18n';
 import { formatDateTime } from '@/lib/localization/format';
 import { runFishingResearch, sourcesToLegacyFormat } from '@/lib/research/orchestrator';
@@ -93,10 +93,7 @@ function toAssistantResponse(research: FishingAnswer): FishingAssistantResponse 
 export async function performFishingResearch(
   input: ResearchOrchestratorInput,
 ): Promise<ResearchResponse> {
-  const canUseEdge =
-    env.supabaseUrl &&
-    env.supabaseAnonKey &&
-    !env.supabaseUrl.includes('placeholder');
+  const canUseEdge = hasSupabaseBackend();
 
   const normalizedQuestion = normalizeFishingQueryText(input.question, input.language);
   const researchInput = { ...input, question: normalizedQuestion };

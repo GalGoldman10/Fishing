@@ -124,6 +124,9 @@
     "webSearchHint": "I search the web and combine results with our fishing database to give you the best answer.",
     "searchingWeb": "Searching the web...",
     "searchedWeb": "Searched the web",
+    "poweredByChatGPT": "ChatGPT",
+    "localKnowledge": "Local engine",
+    "chatGptHint": "Ask anything — when ChatGPT is configured on the server, answers come from OpenAI with fishing sources.",
     "freshness": "Checked {{count}} sources at {{time}}",
     "suggestions": [
       "What can I catch at Palmachim beach?",
