@@ -56,7 +56,10 @@ export default function ChatScreen() {
   const send = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
 
-    const recentMessages = messages.slice(-8).map((message) => message.text);
+    const recentMessages = messages.slice(-8).map((message) => ({
+      role: message.role,
+      text: message.text,
+    }));
     const userMsg: Message = { id: Date.now().toString(), role: 'user', text };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');

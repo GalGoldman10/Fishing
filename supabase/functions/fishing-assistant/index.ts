@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { checkRateLimit, getServiceClient } from '../_shared/tools.ts';
 import { runFishingAssistant } from '../_shared/assistant-runner.ts';
 import { runSimpleOpenAIChat } from '../_shared/simple-openai.ts';
+import { normalizeChatTurns } from '../_shared/research/conversationContext.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -115,9 +116,7 @@ Deno.serve(async (req) => {
         location,
         spotId,
         locationHint,
-        recentMessages: Array.isArray(recentMessages)
-          ? recentMessages.filter((item: unknown): item is string => typeof item === 'string').slice(-8)
-          : undefined,
+        recentMessages: normalizeChatTurns(recentMessages).slice(-8),
       });
     } catch (assistantErr) {
       console.warn('Full assistant failed, trying simple ChatGPT:', assistantErr);

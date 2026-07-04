@@ -20,6 +20,7 @@ import type {
   ResearchOrchestratorOutput,
 } from '@/types/research';
 import { validateFishingScope, getRefusalMessage } from '@/lib/research/scopeGuard';
+import { turnsToScopeContext, enrichQuestionWithConversation } from '@/lib/research/conversationContext';
 import { understandQuery } from '@/lib/research/queryUnderstanding';
 import { generateSearchQueries } from '@/lib/research/queryGenerator';
 import { filterByRelevance } from '@/lib/research/contentClassifier';
@@ -65,10 +66,13 @@ export async function runFishingResearch(
   // 0. Normalize Hebrew/English fishing slang and typos before every downstream step.
   const termNormalization = normalizeFishingQuery(input.question, language);
   const question = termNormalization.normalizedQuestion;
+  const searchQuestion = input.conversationContext?.length
+    ? enrichQuestionWithConversation(question, input.conversationContext, language)
+    : question;
 
   // 1. Topic restriction — refuse non-fishing questions politely.
   const scope = validateFishingScope(question, language, {
-    conversationContext: input.conversationContext,
+    conversationContext: turnsToScopeContext(input.conversationContext ?? []),
   });
   if (!scope.allowed) {
     const refusal: FishingAnswer = {
@@ -90,11 +94,11 @@ export async function runFishingResearch(
   }
 
   // 2. Understand the question and resolve the location to real coordinates.
-  const understanding = understandQuery(question, language, input.locationHint);
+  const understanding = understandQuery(searchQuestion, language, input.locationHint);
   if (!understanding.termNormalization) {
     understanding.termNormalization = termNormalization;
   }
-  const resolved = resolveLocation(question, input.locationHint);
+  const resolved = resolveLocation(searchQuestion, input.locationHint);
   if (resolved) {
     understanding.locationName = language === 'he' ? resolved.nameHe : resolved.nameEn;
     understanding.city = resolved.city ?? understanding.city;
@@ -117,7 +121,7 @@ export async function runFishingResearch(
   }
 
   // 4. Multi-query, multi-provider search. Track failures explicitly.
-  const searchQueries = generateSearchQueries(question, understanding, language);
+  const searchQueries = generateSearchQueries(searchQuestion, understanding, language);
   const providersUsed = providers.map((p) => p.name);
   let failedTasks = 0;
 

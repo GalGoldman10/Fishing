@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { runServerResearch } from '../_shared/research/orchestrator.ts';
+import { normalizeChatTurns } from '../_shared/research/conversationContext.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,9 +24,7 @@ Deno.serve(async (req) => {
     }
 
     const hint = locationHint ?? (location ? 'Israel Mediterranean coast' : undefined);
-    const context = Array.isArray(recentMessages)
-      ? recentMessages.filter((item: unknown): item is string => typeof item === 'string').slice(-8)
-      : [];
+    const context = normalizeChatTurns(recentMessages).slice(-8);
     const research = await runServerResearch(question, language, hint, context);
 
     return new Response(JSON.stringify({

@@ -2,6 +2,8 @@
  * Fishing research platform — core type definitions.
  */
 
+import type { ChatTurn } from '@/lib/research/conversationContext';
+
 export type FishingSourceType =
   | 'government'
   | 'regulation'
@@ -177,7 +179,7 @@ export interface ResearchOrchestratorInput {
   locationHint?: string;
   spotId?: string;
   country?: string;
-  conversationContext?: string[];
+  conversationContext?: ChatTurn[];
 }
 
 export interface ResearchOrchestratorOutput {

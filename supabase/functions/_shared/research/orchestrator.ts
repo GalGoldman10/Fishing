@@ -4,16 +4,53 @@
 
 import { searchAllProviders, type RawSearchResult, type FishingSearchQuery } from './providers.ts';
 import { isFishingQuestion, validateFishingScope } from './scopeGuard.ts';
+import {
+  type ChatTurn,
+  enrichQuestionWithConversation,
+  extractLocationsFromConversation,
+  extractSpeciesFromQuestion,
+  turnsToScopeContext,
+} from './conversationContext.ts';
 
 function isFishingRelated(text: string): boolean {
   if (text.toLowerCase().includes('phishing')) return false;
   return isFishingQuestion(text, 'en') || isFishingQuestion(text, 'he');
 }
 
-function generateQueries(question: string, language: string, locationHint?: string): FishingSearchQuery[] {
+function generateQueries(
+  question: string,
+  language: string,
+  locationHint?: string,
+  conversationContext: ChatTurn[] = [],
+): FishingSearchQuery[] {
+  const lang = language === 'he' ? 'he' : 'en';
+  const enriched = enrichQuestionWithConversation(question, conversationContext, lang);
   const queries: FishingSearchQuery[] = [
-    { query: question, language: language as 'en' | 'he' },
+    { query: enriched, language: lang },
   ];
+
+  const locations = extractLocationsFromConversation(conversationContext);
+  const species = extractSpeciesFromQuestion(question);
+
+  for (const location of locations.slice(0, 3)) {
+    const label = lang === 'he' ? location.labelHe : location.labelEn;
+    queries.push({ query: `${label} fishing shore species`, language: 'en' });
+    if (lang === 'he') {
+      queries.push({ query: `${location.labelHe} דיג מינים`, language: 'he' });
+    }
+    if (species) {
+      queries.push({
+        query: `${label} ${species.labelEn} fishing`,
+        language: 'en',
+      });
+      if (lang === 'he') {
+        queries.push({
+          query: `${location.labelHe} דיג ${species.labelHe}`,
+          language: 'he',
+        });
+      }
+    }
+  }
   if (locationHint) {
     queries.push({ query: `${locationHint} fishing species shore`, language: 'en' });
     if (language === 'he') {
@@ -84,12 +121,12 @@ export async function runServerResearch(
   question: string,
   language: string,
   locationHint?: string,
-  conversationContext: string[] = [],
+  conversationContext: ChatTurn[] = [],
 ): Promise<ServerResearchOutput> {
   const now = new Date().toISOString();
   const lang = language === 'he' ? 'he' : 'en';
 
-  if (!validateFishingScope(question, lang, conversationContext)) {
+  if (!validateFishingScope(question, lang, turnsToScopeContext(conversationContext))) {
     return {
       question, language: lang,
       directAnswer: lang === 'he' ? REFUSAL_HE : REFUSAL_EN,
@@ -103,7 +140,7 @@ export async function runServerResearch(
     };
   }
 
-  const queries = generateQueries(question, lang, locationHint);
+  const queries = generateQueries(question, lang, locationHint, conversationContext);
   const searchTasks = queries.map((q) => searchAllProviders(q));
   const settled = await Promise.allSettled(searchTasks);
 

@@ -61,6 +61,18 @@ describe('scopeGuard', () => {
     ).toBe(false);
   });
 
+  it('allows referential follow-ups when prior turns mention beaches', () => {
+    const prior = [
+      { role: 'user' as const, text: 'יש לי העדפה לפלמחים או חוף ראשון' },
+      { role: 'assistant' as const, text: 'פלמחים מתאימה לדיג סלעים.' },
+    ];
+    expect(
+      validateFishingScope('איזה חוף מבין השתיים מתאים לדייג של בורי?', 'he', {
+        conversationContext: prior.map((turn) => turn.text),
+      }).allowed,
+    ).toBe(true);
+  });
+
   it('answers where to catch mullet end-to-end', async () => {
     const result = await runFishingResearch({
       question: 'איפה אפשר לתפוס בורי?',

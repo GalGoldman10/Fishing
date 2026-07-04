@@ -9,6 +9,7 @@ import i18n from '@/lib/localization/i18n';
 import { formatDateTime } from '@/lib/localization/format';
 import { runFishingResearch, sourcesToLegacyFormat } from '@/lib/research/orchestrator';
 import { normalizeFishingQueryText } from '@/lib/research/fishingTermNormalization';
+import type { ChatTurn } from '@/lib/research/conversationContext';
 import type { FishingAnswer, ResearchOrchestratorInput } from '@/types/research';
 import { FishingAssistantResponse } from '@/lib/validation/schemas';
 
