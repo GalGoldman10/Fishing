@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   View,
@@ -48,16 +48,12 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
   const listRef = useRef<FlatList>(null);
+  const lastAutoSentRef = useRef<string | null>(null);
   const { q } = useLocalSearchParams<{ q?: string }>();
-
-  // Pre-fill a question passed from the homepage hero / AI suggestion chips.
-  useEffect(() => {
-    if (typeof q === 'string' && q.trim()) setInput(q);
-  }, [q]);
 
   const suggestions = t('chat.suggestions', { returnObjects: true }) as string[];
 
-  const send = async (text: string) => {
+  const send = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
 
     const userMsg: Message = { id: Date.now().toString(), role: 'user', text };
@@ -103,7 +99,22 @@ export default function ChatScreen() {
       setLoading(false);
       setTimeout(() => listRef.current?.scrollToEnd(), 100);
     }
-  };
+  }, [i18n.language, loading, sessionId, t]);
+
+  // Auto-send a question passed from the homepage hero / AI suggestion chips.
+  useEffect(() => {
+    if (typeof q !== 'string' || !q.trim()) {
+      lastAutoSentRef.current = null;
+      return;
+    }
+
+    const question = q.trim();
+    if (lastAutoSentRef.current === question) return;
+
+    lastAutoSentRef.current = question;
+    router.setParams({ q: '' });
+    void send(question);
+  }, [q, router, send]);
 
   return (
     <KeyboardAvoidingView
