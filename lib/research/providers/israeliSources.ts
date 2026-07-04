@@ -51,6 +51,7 @@ const ISRAEL_FISHING_JARJOUR_URL =
   'https://israelfishing.co.il/%D7%9B%D7%AA%D7%91%D7%95%D7%AA/%D7%94%D7%9E%D7%93%D7%A8%D7%99%D7%9A-%D7%94%D7%A9%D7%9C%D7%9D-%D7%9C%D7%92%D7%A8%D7%92%D7%95%D7%A8/';
 const TAHVIVIM_SPECIES_URL =
   'https://tahvivim.com/%d7%a1%d7%95%d7%92%d7%99-%d7%93%d7%92%d7%99%d7%9d/';
+const PARKS_MEDITERRANEAN_FISH_URL = 'https://www.parks.org.il/category/sea/fish/';
 
 export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
   // ---- shvilist.com — Mediterranean fishing beaches ----
@@ -313,6 +314,27 @@ export const ISRAELI_CURATED_ENTRIES: CuratedEntry[] = [
       'ג\'רג\'ור', 'גרגור', 'ז\'ירז\'ור', 'jarjour', 'zirzur', 'lure', 'דמוי', 'minnow', 'topwater',
       'popper', 'jig', 'סיליקון', 'soft plastic', 'retrieve', 'הובלה', 'בד', 'braid', 'מקל light',
       'לוקוס', 'גומבר', 'ברקודה', 'סרגוס', 'spinning', 'artificial lure',
+    ],
+  },
+  // ---- parks.org.il — Mediterranean fish species guide ----
+  {
+    id: 'parks-mediterranean-fish',
+    url: PARKS_MEDITERRANEAN_FISH_URL,
+    pageId: 'parks-fish-category',
+    title: {
+      en: 'Know Your Fish: Mediterranean species — Nature and Parks Authority',
+      he: 'דע את הדג: דגי הים התיכון — רשות הטבע והגנים',
+    },
+    snippet: {
+      en: 'INPA guide to 12 fish families commonly caught off Israel: mullets, mackerels, jacks, rabbitfish, groupers, seabream, barracuda, bluefish, goatfish, croakers and more. Hundreds of species live in the Med; many are native, others arrived from the Red Sea via Suez. Profiles include habitat, size, spawning season and fishing methods.',
+      he: 'מדריך רשות הטבע והגנים ל-12 משפחות דגים שדייגים פוגשים לעיתים קרובות: קיפוניים, קוליסיים, צניניתיים, סיכניים, דקריים, ספרוסיים, אספירניתיים, גומבריים, מוליתיים, מוסריים ועוד. מאות מינים בים התיכון; חלקם מקומיים וחלקם הגיעו מים סוף. לכל מין: בית גידול, גודל, עונת רבייה ושיטות דיג.',
+    },
+    keywords: [
+      'דע את הדג', 'דגי הים התיכון', 'mediterranean fish', 'know your fish', 'משפחת',
+      'mugilidae', 'serranidae', 'sparidae', 'scombridae', 'carangidae', 'mullidae',
+      'לוקוס', 'דניס', 'בורי', 'ברבוניה', 'פלמידה', 'אינטיאס', 'גומבר', 'סרגוס',
+      'grouper', 'seabream', 'mullet', 'bonito', 'amberjack', 'bluefish', 'barracuda',
+      'species profile', 'fish family', 'מה זה דניס', 'מה זה לוקוס',
     ],
   },
   // ---- tahvivim.com — common Israeli sea fish species ----

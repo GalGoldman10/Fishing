@@ -50,12 +50,12 @@ describe('israeliSourcesProvider', () => {
     expect(results.some((r) => r.url.includes('israelfishing.co.il'))).toBe(true);
   });
 
-  it('matches species type questions to tahvivim.com', async () => {
+  it('matches Mediterranean fish questions to parks.org.il', async () => {
     const results = await israeliSourcesProvider.search({
-      query: 'סוגי דגים בים התיכון לברק טלוויזיה',
+      query: 'דע את הדג דניס לוקוס ספרוסיים',
       language: 'he',
     });
-    expect(results.some((r) => r.url.includes('tahvivim.com'))).toBe(true);
+    expect(results.some((r) => r.url.includes('parks.org.il/category/sea/fish'))).toBe(true);
   });
 
   it('returns no results for unrelated queries', async () => {
