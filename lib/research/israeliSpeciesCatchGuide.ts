@@ -3,12 +3,21 @@
  *
  * Size recommendations and per-session limits sourced from the Fishing Addicts
  * recreational ethics infographic (community guide). Official legal minimums
- * and protected species status must always be verified at parks.org.il (INPA).
+ * and protected species status cross-referenced with parks.org.il (INPA):
+ *   - parks.org.il/category/sea/fish/ (species profiles)
+ *   - parks.org.il/article/fish-length/ (minimum sizes)
  *
  * General species descriptions also reference tahvivim.com hobby fishing content.
  */
 
 import type { Lang } from '@/lib/research/fishingKnowledge';
+import {
+  buildMediterraneanFishCatalogOverview,
+  buildMediterraneanFishDetailAnswer,
+  matchMediterraneanFish,
+  tryBuildMediterraneanFishAnswer,
+  PARKS_MEDITERRANEAN_FISH_URL,
+} from '@/lib/research/mediterraneanFishCatalog';
 
 export interface SpeciesCatchProfile {
   id: string;
@@ -86,7 +95,7 @@ export const ISRAELI_SPECIES_CATCH_GUIDE: SpeciesCatchProfile[] = [
     name: { en: 'Barracuda', he: 'ברקודה' },
     role: { en: 'Predator and prey — no extinction concern listed', he: 'טורף ונטרף — ללא חשש להכחדה' },
     extinctionConcern: false,
-    legalMinimumCm: 20,
+    legalMinimumCm: 20, // INPA parks.org.il/article/fish-length/
     recommendedMinimumCm: 50,
     maxPerSession: 4,
   },
@@ -216,10 +225,11 @@ export function buildSpeciesCatchAnswer(
 }
 
 export function buildSpeciesListOverviewAnswer(lang: Lang): string {
-  const header =
+  const parksOverview = buildMediterraneanFishCatalogOverview(lang);
+  const ethicsHeader =
     lang === 'he'
-      ? 'תשובה ישירה: 12 דגי ים נפוצים בחופי ישראל — גודל מומלץ ומכסה לסשן (מדריך אתיקה Fishing Addicts):'
-      : 'Direct answer: 12 common Israeli Mediterranean species — recommended size and per-session limits (Fishing Addicts ethics guide):';
+      ? 'מדריך אתיקה לדייג (Fishing Addicts) — 12 מינים עם גודל מומלץ ומכסה לסשן:'
+      : 'Recreational ethics guide (Fishing Addicts) — 12 species with recommended size and per-session limits:';
 
   const rows = ISRAELI_SPECIES_CATCH_GUIDE.map((p) => {
     const legal =
@@ -238,10 +248,10 @@ export function buildSpeciesListOverviewAnswer(lang: Lang): string {
 
   const footer =
     lang === 'he'
-      ? `\nלוקוס מוגן בחוק — שחררו אם נתפס. לאימות רשמי: parks.org.il. לתיאור דגים: ${TAHVIVIM_SPECIES_URL}`
-      : `\nGrouper may be protected by law — release if required. Official rules: parks.org.il. Species descriptions: ${TAHVIVIM_SPECIES_URL}`;
+      ? `\nלוקוס ודקר אלכסנדרוני מוגנים בחוק — שחררו אם נתפס. לאימות רשמי: ${PARKS_MEDITERRANEAN_FISH_URL}`
+      : `\nGrouper species may be protected — release if required. Official rules: ${PARKS_MEDITERRANEAN_FISH_URL}`;
 
-  return `${header}\n\n${rows.join('\n')}\n${footer}`;
+  return `${parksOverview}\n\n---\n\n${ethicsHeader}\n\n${rows.join('\n')}\n${footer}`;
 }
 
 export function tryBuildSpeciesCatchAnswer(
@@ -253,10 +263,16 @@ export function tryBuildSpeciesCatchAnswer(
   }
 
   const profile = matchSpeciesCatchProfile(question);
-  if (!profile) return null;
-
-  if (ASKS_CATCH_LIMITS.test(question) || /מוגן|protected|מותר להשאיר|keep fish|כמה פריטים/i.test(question)) {
+  if (profile && (ASKS_CATCH_LIMITS.test(question) || /מוגן|protected|מותר להשאיר|keep fish|כמה פריטים/i.test(question))) {
     return { directAnswer: buildSpeciesCatchAnswer(profile, lang), usedLocalDb: true };
+  }
+
+  const medAnswer = tryBuildMediterraneanFishAnswer(question, lang);
+  if (medAnswer) return medAnswer;
+
+  const medEntry = matchMediterraneanFish(question);
+  if (medEntry && ASKS_CATCH_LIMITS.test(question)) {
+    return { directAnswer: buildMediterraneanFishDetailAnswer(medEntry, lang), usedLocalDb: true };
   }
 
   return null;

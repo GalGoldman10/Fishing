@@ -10,6 +10,7 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -48,6 +49,71 @@ const SOURCES = [
     title: 'סוגי דגים — תחביבים',
     url: 'https://tahvivim.com/%d7%a1%d7%95%d7%92%d7%99-%d7%93%d7%92%d7%99%d7%9d/',
   },
+  {
+    id: 'parks-fish-category',
+    title: 'דע את הדג: דגי הים התיכון — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/category/sea/fish/',
+  },
+  {
+    id: 'parks-fish-mugilidae',
+    title: 'משפחת הקיפוניים MUGLIDAE — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%d7%9e%d7%a9%d7%a4%d7%97%d7%aa-%d7%94%d7%a7%d7%99%d7%a4%d7%95%d7%a0%d7%99%d7%99%d7%9d-muglidae/',
+  },
+  {
+    id: 'parks-fish-nemipteridae',
+    title: 'משפחת הנימיים Nemipteridae — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%d7%9e%d7%a9%d7%a4%d7%97%d7%aa-%d7%94%d7%a0%d7%99%d7%9e%d7%99%d7%99%d7%9d/',
+  },
+  {
+    id: 'parks-fish-scombridae',
+    title: 'משפחת הקוליסיים SCOMBRIDAE — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%d7%9e%d7%a9%d7%a4%d7%97%d7%aa-%d7%94%d7%a7%d7%95%d7%9c%d7%99%d7%a1%d7%99%d7%99%d7%9d-scombridae/',
+  },
+  {
+    id: 'parks-fish-carngidae',
+    title: 'משפחת הצניניתיים CARANGIDAE — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%D7%9E%D7%A9%D7%A4%D7%97%D7%AA-%D7%94%D7%A6%D7%A0%D7%99%D7%A0%D7%99%D7%AA%D7%99%D7%99%D7%9D-carandigae/',
+  },
+  {
+    id: 'parks-fish-siganidae',
+    title: 'משפחת הסיכניים SIGANIDAE — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%d7%9e%d7%a9%d7%a4%d7%97%d7%aa-%d7%94%d7%a1%d7%99%d7%9b%d7%a0%d7%99%d7%99%d7%9d-siganidae/',
+  },
+  {
+    id: 'parks-fish-balistidae',
+    title: 'משפחת הנצרניים BALISTIDAE — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%d7%9e%d7%a9%d7%a4%d7%97%d7%aa-%d7%94%d7%a0%d7%a6%d7%a8%d7%a0%d7%99%d7%99%d7%9d-balistidae/',
+  },
+  {
+    id: 'parks-fish-sciaenidae',
+    title: 'משפחת המוסריים SCIAENIDAE — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%d7%9e%d7%a9%d7%a4%d7%97%d7%aa-%d7%94%d7%9e%d7%95%d7%a1%d7%a8%d7%99%d7%99%d7%9d-sciaenidae/',
+  },
+  {
+    id: 'parks-fish-mullidae',
+    title: 'משפחת המוליתיים MULLIDAE — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%d7%9e%d7%a9%d7%a4%d7%97%d7%aa-%d7%94%d7%9e%d7%95%d7%9c%d7%99%d7%aa%d7%99%d7%99%d7%9d-mullidae/',
+  },
+  {
+    id: 'parks-fish-serranidae',
+    title: 'משפחת הדקריים SERRANIDAE — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%d7%9e%d7%a9%d7%a4%d7%97%d7%aa-%d7%94%d7%93%d7%a7%d7%a8%d7%99%d7%99%d7%9d-serranidae/',
+  },
+  {
+    id: 'parks-fish-pomatomidae',
+    title: 'משפחת הגומבריים POMATOMIDAE — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%d7%9e%d7%a9%d7%a4%d7%97%d7%aa-%d7%94%d7%92%d7%95%d7%9e%d7%91%d7%a8%d7%99%d7%99%d7%9d-pomatomidae/',
+  },
+  {
+    id: 'parks-fish-sphyrnidae',
+    title: 'משפחת האספירניתיים SPHYRNIDAE — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%d7%9e%d7%a9%d7%a4%d7%97%d7%aa-%d7%94%d7%90%d7%a1%d7%a4%d7%99%d7%a8%d7%a0%d7%99%d7%99%d7%9d-sphyrnidae/',
+  },
+  {
+    id: 'parks-fish-sparidae',
+    title: 'משפחת הספרוסיים SPARIDAE — רשות הטבע והגנים',
+    url: 'https://www.parks.org.il/article/%d7%9e%d7%a9%d7%a4%d7%97%d7%aa-%d7%94%d7%a1%d7%a4%d7%a8%d7%95%d7%a1%d7%99%d7%99%d7%9d-sparidae/',
+  },
 ];
 
 function htmlToText(html) {
@@ -68,25 +134,41 @@ function htmlToText(html) {
     .trim();
 }
 
-async function fetchPage(source) {
+async function fetchHtml(url) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    const res = await fetch(source.url, {
+    const res = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; FishGuideBot/1.0; +https://github.com/GalGoldman10/Fishing)',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         Accept: 'text/html',
       },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const html = await res.text();
-    const text = htmlToText(html).slice(0, MAX_TEXT_LENGTH);
-    if (text.length < 500) throw new Error('page text too short — possible block page');
-    return { id: source.id, url: source.url, title: source.title, fetchedAt: new Date().toISOString(), text };
+    return await res.text();
+  } catch (fetchErr) {
+    // parks.org.il CloudFront sometimes blocks Node fetch — curl fallback
+    try {
+      return execFileSync(
+        'curl',
+        ['-sL', url, '-H', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'],
+        { encoding: 'utf8', maxBuffer: 5 * 1024 * 1024 },
+      );
+    } catch {
+      throw fetchErr;
+    }
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function fetchPage(source) {
+  const html = await fetchHtml(source.url);
+  const text = htmlToText(html).slice(0, MAX_TEXT_LENGTH);
+  if (text.length < 500) throw new Error('page text too short — possible block page');
+  return { id: source.id, url: source.url, title: source.title, fetchedAt: new Date().toISOString(), text };
 }
 
 function loadExisting() {

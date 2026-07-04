@@ -34,10 +34,11 @@ describe('israeliSpeciesCatchGuide', () => {
 
   it('builds species list overview for סוגי דגים', () => {
     const answer = buildSpeciesListOverviewAnswer('he');
+    expect(answer).toMatch(/25/);
+    expect(answer).toMatch(/parks\.org\.il/);
+    expect(answer).toMatch(/לוקוס|דניס/);
     expect(answer).toMatch(/12/);
-    expect(answer).toMatch(/לוקוס/);
-    expect(answer).toMatch(/טלוויזיה/);
-    expect(answer).toMatch(/tahvivim\.com/);
+    expect(answer).toMatch(/Fishing Addicts|מדריך אתיקה/);
   });
 
   it('returns catch answer for size-limit questions', () => {
@@ -49,7 +50,8 @@ describe('israeliSpeciesCatchGuide', () => {
 
   it('returns overview for species list questions', () => {
     const result = tryBuildSpeciesCatchAnswer('סוגי דגים בישראל', 'he');
-    expect(result?.directAnswer).toMatch(/12/);
+    expect(result?.directAnswer).toMatch(/25/);
+    expect(result?.directAnswer).toMatch(/parks\.org\.il/);
   });
 
   it('does not answer location-only species questions', () => {
