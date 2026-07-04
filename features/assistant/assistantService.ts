@@ -22,9 +22,11 @@ export interface ChatResponse {
   webSearchUsed?: boolean;
   research?: FishingAnswer;
   aiPowered?: boolean;
+  /** Set when ChatGPT was requested but local engine answered instead. */
+  aiFallbackReason?: 'not_configured' | 'edge_error';
 }
 
-const AI_NOT_CONFIGURED = /OPENAI_API_KEY|not configured/i;
+const AI_NOT_CONFIGURED = /OPENAI_API_KEY|not configured|ChatGPT לא מוגדר/i;
 
 function toStructured(research: FishingAnswer): FishingAssistantResponse {
   return {
@@ -87,20 +89,25 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
             answer: payload.answer,
             sessionId: payload.sessionId,
             aiPowered: false,
+            aiFallbackReason: 'not_configured',
           };
         }
         return { ...payload, aiPowered: true };
       }
       if (error) {
         console.warn('[chat] fishing-assistant error, falling back to local research:', error.message);
+        const local = await getResearchEnhancedResponse(request);
+        return { ...local, aiPowered: false, aiFallbackReason: 'edge_error' };
       }
     } catch (err) {
       console.warn('[chat] fishing-assistant unavailable, falling back to local research:', err);
+      const local = await getResearchEnhancedResponse(request);
+      return { ...local, aiPowered: false, aiFallbackReason: 'edge_error' };
     }
   }
 
   const local = await getResearchEnhancedResponse(request);
-  return { ...local, aiPowered: false };
+  return { ...local, aiPowered: false, aiFallbackReason: 'not_configured' };
 }
 
 async function getResearchEnhancedResponse(request: ChatRequest): Promise<ChatResponse> {

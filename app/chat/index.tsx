@@ -32,6 +32,7 @@ interface Message {
   structured?: FishingAssistantResponse;
   webSearchUsed?: boolean;
   aiPowered?: boolean;
+  aiFallbackReason?: 'not_configured' | 'edge_error';
   research?: FishingAnswer;
   /** Original question, set when the answer failed or lacked live data — enables retry. */
   retryQuestion?: string;
@@ -80,6 +81,7 @@ export default function ChatScreen() {
           structured: response.structured,
           webSearchUsed: response.webSearchUsed,
           aiPowered: response.aiPowered,
+          aiFallbackReason: response.aiFallbackReason,
           research: response.research,
           retryQuestion: response.research?.searchFailed ? text : undefined,
         },
@@ -151,10 +153,18 @@ export default function ChatScreen() {
             {item.role === 'assistant' && (
               <View style={styles.webBadge}>
                 {item.aiPowered && <Chip label={t('chat.poweredByChatGPT')} tone="web" />}
-                {!item.aiPowered && item.webSearchUsed && (
+                {!item.aiPowered && item.aiFallbackReason && (
+                  <Chip label={t('chat.localKnowledge')} tone="web" />
+                )}
+                {!item.aiPowered && !item.aiFallbackReason && item.webSearchUsed && (
                   <Chip label={t('chat.searchedWeb')} tone="web" />
                 )}
               </View>
+            )}
+            {item.role === 'assistant' && item.aiFallbackReason && (
+              <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: spacing.xs }}>
+                {t('chat.localFallback')}
+              </Text>
             )}
             <Text style={{ color: item.role === 'user' ? '#fff' : colors.text, ...typography.body }}>
               {item.text}

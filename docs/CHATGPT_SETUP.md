@@ -43,11 +43,26 @@ supabase secrets set TAVILY_API_KEY=tvly-...
 
 ## שלב 3 — פריסת Edge Functions
 
+**חובה** — בלי זה ChatGPT לא יעבוד (האתר ייפול למנוע מקומי).
+
+### אופציה א — Supabase CLI (מומלץ)
+
 ```bash
+cd fishguide-ai
+supabase login
+supabase link --project-ref YOUR_PROJECT_REF
 supabase functions deploy fishing-assistant
 supabase functions deploy fishing-research
 supabase functions deploy web-search
 ```
+
+### אופציה ב — GitHub Actions
+
+1. Supabase → Account → **Access Tokens** → צור token
+2. GitHub Secrets:
+   - `SUPABASE_ACCESS_TOKEN` = ה-token
+   - `SUPABASE_PROJECT_REF` = Project ID (מ-Settings → General)
+3. GitHub → Actions → **Deploy Supabase Edge Functions** → Run workflow
 
 ---
 
@@ -57,7 +72,7 @@ supabase functions deploy web-search
 
 | Secret | ערך |
 |--------|-----|
-| `EXPO_PUBLIC_SUPABASE_URL` | `https://YOUR_PROJECT.supabase.co` |
+| `EXPO_PUBLIC_SUPABASE_URL` | `https://YOUR_PROJECT.supabase.co` (Project ID from Settings → General, e.g. `jtsjetxvvdckjyqdmrow`) |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | מפתח anon/public מ-Supabase |
 
 אחרי push ל-`main`, האתר יקרא ל-`fishing-assistant` ו-ChatGPT יענה על שאלות.

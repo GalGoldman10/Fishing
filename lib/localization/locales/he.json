@@ -127,6 +127,7 @@
     "poweredByChatGPT": "ChatGPT",
     "localKnowledge": "מנוע מקומי",
     "chatGptHint": "שאל כל שאלה — כש-ChatGPT מוגדר בשרת, התשובה תגיע מ-OpenAI עם מקורות דיג.",
+    "localFallback": "תשובה מהמנוע המקומי — ChatGPT לא זמין. ודא ש-Edge Functions פרוסות וש-URL של Supabase נכון.",
     "freshness": "נבדקו {{count}} מקורות ב-{{time}}",
     "suggestions": [
       "מה אפשר ללכוד בחוף פלמחים?",
