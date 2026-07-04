@@ -8,28 +8,42 @@ export function getServiceClient() {
 }
 
 export async function checkRateLimit(identifier: string, endpoint: string, maxRequests = 20): Promise<boolean> {
-  const supabase = getServiceClient();
-  const windowStart = new Date();
-  windowStart.setMinutes(windowStart.getMinutes() - 60);
+  try {
+    const supabase = getServiceClient();
+    const windowStart = new Date();
+    windowStart.setMinutes(windowStart.getMinutes() - 60);
 
-  const { data } = await supabase
-    .from('rate_limits')
-    .select('request_count')
-    .eq('identifier', identifier)
-    .eq('endpoint', endpoint)
-    .gte('window_start', windowStart.toISOString())
-    .maybeSingle();
+    const { data, error } = await supabase
+      .from('rate_limits')
+      .select('request_count')
+      .eq('identifier', identifier)
+      .eq('endpoint', endpoint)
+      .gte('window_start', windowStart.toISOString())
+      .maybeSingle();
 
-  if (data && data.request_count >= maxRequests) return false;
+    if (error) {
+      console.warn('rate_limits query failed, allowing request:', error.message);
+      return true;
+    }
 
-  await supabase.from('rate_limits').upsert({
-    identifier,
-    endpoint,
-    request_count: (data?.request_count ?? 0) + 1,
-    window_start: new Date().toISOString(),
-  }, { onConflict: 'identifier,endpoint' });
+    if (data && data.request_count >= maxRequests) return false;
 
-  return true;
+    const { error: upsertError } = await supabase.from('rate_limits').upsert({
+      identifier,
+      endpoint,
+      request_count: (data?.request_count ?? 0) + 1,
+      window_start: new Date().toISOString(),
+    }, { onConflict: 'identifier,endpoint' });
+
+    if (upsertError) {
+      console.warn('rate_limits upsert failed, allowing request:', upsertError.message);
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('checkRateLimit failed, allowing request:', err);
+    return true;
+  }
 }
 
 export async function executeTool(name: string, args: Record<string, unknown>): Promise<unknown> {

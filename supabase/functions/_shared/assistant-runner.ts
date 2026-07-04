@@ -90,7 +90,24 @@ export async function runFishingAssistant(input: RunAssistantInput): Promise<Run
     input.language,
     input.locationHint,
   );
-  let webSearchUsed = research.sources.length > 0 && !research.refused;
+
+  if (research.refused) {
+    return {
+      answer: research.directAnswer,
+      structured: {
+        answer: research.directAnswer,
+        possibleSpecies: [],
+        hazards: [],
+        regulations: [],
+        followUpQuestions: [],
+        sources: [],
+        confidence: 'low' as const,
+      },
+      webSearchUsed: false,
+    };
+  }
+
+  let webSearchUsed = research.sources.length > 0;
 
   const contextBlocks: string[] = [
     formatResearchForPrompt(research),
@@ -254,22 +271,6 @@ export async function runFishingAssistant(input: RunAssistantInput): Promise<Run
     structured.sources = merged;
     structured.freshnessMessage =
       structured.freshnessMessage ?? `Answer informed by multi-source research (${research.providersUsed.join(', ')})`;
-  }
-
-  if (research.refused) {
-    return {
-      answer: research.directAnswer,
-      structured: {
-        answer: research.directAnswer,
-        possibleSpecies: [],
-        hazards: [],
-        regulations: [],
-        followUpQuestions: [],
-        sources: [],
-        confidence: 'low' as const,
-      },
-      webSearchUsed: false,
-    };
   }
 
   return { answer: answerText, structured, webSearchUsed };

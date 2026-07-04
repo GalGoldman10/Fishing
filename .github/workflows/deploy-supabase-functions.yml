@@ -20,7 +20,6 @@ jobs:
           set -euo pipefail
           echo "Workflow commit: ${{ github.sha }}"
 
-          # SUPABASE_* env vars (except ACCESS_TOKEN) break config.toml parsing in CI.
           unset SUPABASE_PROJECT_REF SUPABASE_URL SUPABASE_DB_PORT SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY 2>/dev/null || true
 
           PROJECT_REF="${{ secrets.SUPABASE_PROJECT_REF }}"

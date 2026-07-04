@@ -4,7 +4,11 @@
 
 import { searchAllProviders, type RawSearchResult, type FishingSearchQuery } from './providers.ts';
 
-const FISHING_TERMS = ['fish', 'fishing', 'angler', 'bait', 'lure', 'rod', 'דיג', 'דייג', 'דג', 'חכה', 'פיתיון'];
+const FISHING_TERMS = [
+  'fish', 'fishing', 'angler', 'bait', 'lure', 'rod', 'דיג', 'דייג', 'דג', 'דגים', 'חכה', 'פיתיון',
+  'ברקודה', 'לוקוס', 'סרגוס', 'גומבר', 'בורי', 'דניס', 'מינימום', 'בסשן', 'תקנה', 'לתפוס', 'זירזור',
+  'barracuda', 'grouper', 'species', 'regulation', 'catch', 'shore', 'חוף', 'מזח',
+];
 
 function isFishingRelated(text: string): boolean {
   if (text.toLowerCase().includes('phishing')) return false;
@@ -81,8 +85,10 @@ export interface ServerResearchOutput {
 const REFUSAL_EN = 'This assistant specializes only in fishing and fishing-related information. Please ask me about a fishing location, fish species, equipment, technique, conditions, or regulations.';
 const REFUSAL_HE = 'עוזר זה מתמחה רק בדיג ובמידע הקשור לדיג. שאל אותי על מקום דיג, מין דג, ציוד, טכניקה, תנאים או תקנות.';
 
-function validateScope(question: string, language: string): boolean {
-  return isFishingRelated(question) || /beach|חוף|pier|מזח|lake|אגם/i.test(question);
+function validateScope(question: string, _language: string): boolean {
+  if (isFishingRelated(question)) return true;
+  if (/beach|חוף|pier|מזח|lake|אגם|marina|נמל|minimum|size|גודל|מינימום/i.test(question)) return true;
+  return false;
 }
 
 export async function runServerResearch(

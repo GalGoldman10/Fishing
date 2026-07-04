@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { checkRateLimit, getServiceClient } from '../_shared/tools.ts';
 import { runFishingAssistant } from '../_shared/assistant-runner.ts';
+import { runSimpleOpenAIChat } from '../_shared/simple-openai.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,9 +54,11 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  let language = 'en';
   try {
     const body = await req.json();
-    const { message, sessionId, language = 'en', location, spotId, locationHint } = body;
+    const { message, sessionId, location, spotId, locationHint } = body;
+    language = body.language ?? 'en';
 
     if (!message || message.length > 4000) {
       return new Response(JSON.stringify({ error: 'Invalid message' }), {
@@ -104,13 +107,20 @@ Deno.serve(async (req) => {
       console.warn('Supabase DB unavailable, running ChatGPT without persistence:', err);
     }
 
-    const result = await runFishingAssistant({
-      message,
-      language,
-      location,
-      spotId,
-      locationHint,
-    });
+    let result;
+    try {
+      result = await runFishingAssistant({
+        message,
+        language,
+        location,
+        spotId,
+        locationHint,
+      });
+    } catch (assistantErr) {
+      console.warn('Full assistant failed, trying simple ChatGPT:', assistantErr);
+      const simple = await runSimpleOpenAIChat(message, language);
+      result = { answer: simple.answer, webSearchUsed: false, structured: undefined };
+    }
 
     if (supabase) {
       await trySaveMessage(supabase, currentSessionId, 'assistant', result.answer, result.structured);
@@ -128,9 +138,15 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error('fishing-assistant error:', err);
+    const msg = err instanceof Error ? err.message : String(err);
     return new Response(
-      JSON.stringify({ answer: 'Something went wrong while searching. Please try again.' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      JSON.stringify({
+        answer: language === 'he'
+          ? `שגיאה ב-ChatGPT: ${msg.slice(0, 200)}`
+          : `ChatGPT error: ${msg.slice(0, 200)}`,
+        aiPowered: false,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
