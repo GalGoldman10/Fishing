@@ -3,7 +3,16 @@
  */
 
 import { normalizeFishingQuery } from '@/lib/research/fishingTermNormalization';
+import { normalizeHebrewFinalLetters } from '@/lib/research/fishingTermNormalization/textUtils';
 import { detectTargetSpecies } from '@/lib/research/fishingKnowledge';
+
+function containsHebrew(text: string): boolean {
+  return /[\u0590-\u05FF]/.test(text);
+}
+
+function normalizeHebrewForScope(text: string): string {
+  return normalizeHebrewFinalLetters(text);
+}
 
 const FISHING_KEYWORDS_EN = [
   'fish', 'fishing', 'angler', 'angling', 'bait', 'lure', 'rod', 'reel', 'tackle',
@@ -15,8 +24,8 @@ const FISHING_KEYWORDS_EN = [
 ];
 
 const FISHING_KEYWORDS_HE = [
-  'דיג', 'לדוג', 'דייג', 'דג', 'דגים', 'חכה', 'פיתיון', 'פתיון', 'דמוי', 'דימוי',
-  'חוף', 'מזח', 'נמל', 'לוכד', 'ציוד', 'גל', 'גאות', 'שפל', 'סירה', 'קיאק', 'קרס',
+  'דיג', 'דיוג', 'לדיוג', 'לדוג', 'דייג', 'דג', 'דגים', 'חכה', 'פיתיון', 'פתיון', 'דמוי', 'דימוי',
+  'חוף', 'חופים', 'מזח', 'נמל', 'לוכד', 'ציוד', 'גל', 'גאות', 'שפל', 'סירה', 'קיאק', 'קרס',
   'משקולת', 'פלואט', 'רישיון', 'תקנה', 'לוקוס', 'דניס', 'מושט', 'רוח', 'ים', 'אגם', 'נהר',
   'זירזור', 'זרזור', 'גרגור', 'גירגור', 'גיג', 'ג\'יג', 'ריג', 'סיליקון',
   'בורי', 'ברבוניה', 'סרגוס', 'גומבר', 'ברקודה', 'מרמור', 'ליציה', 'אמנון',
@@ -37,10 +46,12 @@ const FISHING_WEATHER_PATTERNS_EN = [
 
 const FISHING_WEATHER_PATTERNS_HE = [
   /טוב לדיג/,
+  /טוב לדיוג/,
   /מחר לדיג/,
-  /רוח.*(חוף|דיג|סלע)/,
-  /גלים.*דיג/,
+  /רוח.*(חוף|חופ|דיג|דיוג|סלע)/,
+  /גלים.*(דיג|דיוג)/,
   /לדוג/,
+  /לדיוג/,
   /(ב|ל)?זיר?זור/,
   /(ב|ל)?גר?גור/,
 ];
@@ -49,8 +60,15 @@ const FISHING_INTENT_PATTERNS_HE = [
   /איפה.*(ל)?תפוס/,
   /איפה.*(ל)?לכוד/,
   /מה אפשר (ל)?תפוס/,
-  /איזה (חוף|מקום|מזח).*דג/,
+  /איזה (חוף|חופים|מקום|מקומות|מזח).*?(דג|דיג|דיוג)/,
   /(ל)?תפוס.*(ב|של)/,
+  /איזה חופים/,
+  /חופים.*(מומלץ|מומלצים|טוב|טובים)/,
+  /(מומלץ|מומלצים).*(ל)?(דיג|דיוג)/,
+  /(ל)?(לכת|ללכת).*(דיג|דיוג)/,
+  /פארק.*דיוג/,
+  /איזור.*(דיג|דיוג)/,
+  /אזור.*(דיג|דיוג)/,
 ];
 
 const FISHING_INTENT_PATTERNS_EN = [
@@ -68,9 +86,14 @@ const BLOCKED_TOPICS_EN = [
 function textMatchesFishingKeywords(question: string, language: 'en' | 'he'): boolean {
   const text = question.toLowerCase();
   const keywords = language === 'he' ? FISHING_KEYWORDS_HE : FISHING_KEYWORDS_EN;
-  return keywords.some((kw) =>
-    language === 'he' ? question.includes(kw) : text.includes(kw.toLowerCase()),
-  );
+  const normalizedQuestion = language === 'he' ? normalizeHebrewForScope(question) : text;
+
+  return keywords.some((kw) => {
+    if (language === 'he') {
+      return normalizedQuestion.includes(normalizeHebrewForScope(kw));
+    }
+    return text.includes(kw.toLowerCase());
+  });
 }
 
 const FOLLOWUP_PATTERNS_HE = [
@@ -112,6 +135,14 @@ function hasFishingConversationContext(messages: string[], language: 'en' | 'he'
 }
 
 export function isFishingQuestion(question: string, language: 'en' | 'he'): boolean {
+  if (isFishingQuestionForLanguage(question, language)) return true;
+  if (language !== 'he' && containsHebrew(question)) {
+    return isFishingQuestionForLanguage(question, 'he');
+  }
+  return false;
+}
+
+function isFishingQuestionForLanguage(question: string, language: 'en' | 'he'): boolean {
   const text = question.toLowerCase();
   if (text.includes('phishing')) return false;
 
@@ -125,16 +156,15 @@ export function isFishingQuestion(question: string, language: 'en' | 'he'): bool
   const weatherPatterns = language === 'he' ? FISHING_WEATHER_PATTERNS_HE : FISHING_WEATHER_PATTERNS_EN;
   if (weatherPatterns.some((p) => p.test(question))) return true;
 
-  // Recognize slang/typos via the term normalization layer (ignore weak false positives).
   const norm = normalizeFishingQuery(question, language);
   if (norm.matches.some((m) => m.confidence !== 'low' && m.score >= 0.72)) return true;
 
   if (textMatchesFishingKeywords(norm.normalizedQuestion, language)) return true;
 
-  // Short location-style questions may omit "fishing" explicitly
   const locationPatterns = [
-    /beach|חוף|marina|נמל|pier|מזח|lake|אגם|river|נהר|harbor/i,
-    /palmachim|tel aviv|haifa|חיפה|אילת|herzliya|ashdod|ashkelon/i,
+    /beach|beaches|חוף|חופ/i,
+    /marina|נמל|pier|מזח|lake|אגם|river|נהר|harbor/i,
+    /palmachim|tel aviv|haifa|חיפה|אילת|herzliya|ashdod|ashkelon|מרכז|צפון|דרום/i,
   ];
   if (locationPatterns.some((p) => p.test(question)) && question.length < 120) return true;
 

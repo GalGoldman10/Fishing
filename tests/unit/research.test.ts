@@ -44,6 +44,22 @@ describe('scopeGuard', () => {
     ).toBe(true);
   });
 
+  it('allows recommended central region beach fishing question with דיוג spelling', () => {
+    expect(
+      validateFishingScope('איזה חופים מומלץ ללכת לדיוג באזור המרכז?', 'he').allowed,
+    ).toBe(true);
+  });
+
+  it('allows Hebrew beach questions even when final-letter forms differ (חופים vs חוף)', () => {
+    expect(validateFishingScope('איפה יש חופים טובים?', 'he').allowed).toBe(true);
+  });
+
+  it('allows Hebrew questions when language param is wrong but text is Hebrew', () => {
+    expect(
+      validateFishingScope('איזה חופים מומלץ ללכת לדיוג באזור המרכז?', 'en').allowed,
+    ).toBe(true);
+  });
+
   it('allows short location follow-ups when prior chat was about fishing', () => {
     const prior = [
       'איפה יש פארקי דייג באיזור המרכז?',
