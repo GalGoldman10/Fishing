@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '@/components/common/ThemeProvider';
 import { LoadingState } from '@/components/common/StateViews';
 import { getSpeciesById } from '@/features/spots/spotService';
+import { resolveLang } from '@/lib/localization/localizedText';
 import { spacing } from '@/constants/theme';
 
 function pickLocalized(
@@ -12,7 +13,7 @@ function pickLocalized(
   localized?: { en: string; he: string },
   fallback?: string,
 ): string | undefined {
-  if (localized) return language === 'he' ? localized.he : localized.en;
+  if (localized) return localized[resolveLang(language)];
   return fallback;
 }
 
@@ -30,7 +31,7 @@ export default function SpeciesDetailScreen() {
   if (isLoading) return <LoadingState />;
   if (!species) return null;
 
-  const lang = i18n.language;
+  const lang = resolveLang(i18n.language);
   const name = species.localizedNames?.[lang] ?? species.commonName;
   const content = species.localizedContent;
   const description = pickLocalized(lang, content?.description, species.description);

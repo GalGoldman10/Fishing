@@ -386,7 +386,7 @@ export const SPECIES_TACTICS: Record<string, SpeciesTactics> = {
   seabass: {
     key: 'seabass',
     pattern: /sea ?bass|לברק|לוקוס ים/i,
-    name: { en: 'Sea bass', he: 'לוקוס ים (לברק)' },
+    name: { en: 'Sea bass', he: 'לברק' },
     bites: { en: 'live shrimp, half sardine, slim minnow lures', he: 'שרימפס חי, חצי סרדין, לורים מסוג מינו' },
     where: { en: 'surf troughs and near breakwaters, often surprisingly close to shore', he: 'תעלות בגלים וליד שוברי גלים, לרוב קרוב לחוף באופן מפתיע' },
     when: { en: 'first light and dusk, best with light surf', he: 'אור ראשון ודמדומים, הכי טוב עם גלים קלים' },

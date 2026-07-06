@@ -16,20 +16,20 @@ INSERT INTO fishing_spots (id, slug, name, localized_names, description, country
   ('b0000000-0000-4000-8000-000000000008', 'ashkelon-south', 'Ashkelon South Beach', '{"en":"Ashkelon South Beach","he":"חוף דרום אשקלון"}', 'DEMO: Mixed sandy and rocky beach.', 'IL', 'Ashkelon', 'Ashkelon', 'shore', 'mixed', 'mixed', ST_SetSRID(ST_MakePoint(34.5743, 31.6688), 4326)::geography, 'public', 'Beach parking', 'easy', true, true, ARRAY['surf_casting','float_fishing'], 'demo', 0.3);
 
 INSERT INTO species (id, common_name, scientific_name, localized_names, aliases, habitat, environment_types, preferred_depth_min, preferred_depth_max, conservation_status) VALUES
-  ('c0000000-0000-4000-8000-000000000001', 'European Sea Bass', 'Dicentrarchus labrax', '{"en":"European Sea Bass","he":"לוקוס ים"}', ARRAY['bass','locus'], 'Coastal rocky and sandy areas', ARRAY['shore','pier'], 1, 30, 'least_concern'),
-  ('c0000000-0000-4000-8000-000000000002', 'Bluefin Bream', 'Pagrus caeruleostictus', '{"en":"Bluefin Bream","he":"דניס"}', ARRAY['denis'], 'Rocky reefs', ARRAY['shore','rocks'], 2, 40, 'least_concern'),
+  ('c0000000-0000-4000-8000-000000000001', 'Sea Bass', 'Dicentrarchus labrax', '{"en":"Sea Bass","he":"לברק"}', ARRAY['bass','lavrak'], 'Coastal rocky and sandy areas', ARRAY['shore','pier'], 1, 30, 'least_concern'),
+  ('c0000000-0000-4000-8000-000000000002', 'Gilthead Bream', 'Sparus aurata', '{"en":"Gilthead Bream","he":"דניס"}', ARRAY['denis'], 'Rocky reefs', ARRAY['shore','rocks'], 2, 40, 'least_concern'),
   ('c0000000-0000-4000-8000-000000000003', 'Sand Steenbras', 'Lithognathus mormyrus', '{"en":"Sand Steenbras","he":"מרמור"}', ARRAY['marmor'], 'Sandy bottoms', ARRAY['shore'], 1, 15, 'least_concern'),
   ('c0000000-0000-4000-8000-000000000004', 'Red Porgy', 'Pagrus pagrus', '{"en":"Red Porgy","he":"פארידה"}', ARRAY['pagrus'], 'Rocky areas', ARRAY['rocks','pier'], 5, 50, 'least_concern'),
   ('c0000000-0000-4000-8000-000000000005', 'Bluefish', 'Pomatomus saltatrix', '{"en":"Bluefish","he":"גומבר"}', ARRAY['gombra'], 'Coastal pelagic', ARRAY['shore','pier','boat'], 1, 20, 'least_concern'),
   ('c0000000-0000-4000-8000-000000000006', 'Atlantic Mackerel', 'Scomber scombrus', '{"en":"Atlantic Mackerel","he":"מקרל"}', ARRAY['mackerel'], 'Pelagic', ARRAY['pier','boat'], 1, 30, 'least_concern'),
-  ('c0000000-0000-4000-8000-000000000007', 'Flathead Grey Mullet', 'Mugil cephalus', '{"en":"Flathead Grey Mullet","he":"בורי"}', ARRAY['mullet','buri'], 'Estuaries and shallow coastal', ARRAY['shore','harbor'], 0, 10, 'least_concern'),
+  ('c0000000-0000-4000-8000-000000000007', 'Grey Mullet', 'Mugil cephalus', '{"en":"Grey Mullet","he":"בורי"}', ARRAY['mullet','buri'], 'Estuaries and shallow coastal', ARRAY['shore','harbor'], 0, 10, 'least_concern'),
   ('c0000000-0000-4000-8000-000000000008', 'Dusky Grouper', 'Epinephelus marginatus', '{"en":"Dusky Grouper","he":"לוקוס"}', ARRAY['grouper'], 'Rocky reefs', ARRAY['rocks'], 5, 60, 'vulnerable'),
-  ('c0000000-0000-4000-8000-000000000009', 'Common Sole', 'Solea solea', '{"en":"Common Sole","he":"דג הלשון"}', ARRAY['sole'], 'Sandy muddy bottoms', ARRAY['shore'], 5, 50, 'least_concern'),
+  ('c0000000-0000-4000-8000-000000000009', 'Common Sole', 'Solea solea', '{"en":"Common Sole","he":"דג לשון"}', ARRAY['sole'], 'Sandy muddy bottoms', ARRAY['shore'], 5, 50, 'least_concern'),
   ('c0000000-0000-4000-8000-000000000010', 'Greater Amberjack', 'Seriola dumerili', '{"en":"Greater Amberjack","he":"אינטיאס"}', ARRAY['amberjack'], 'Offshore reefs', ARRAY['boat','pier'], 10, 100, 'least_concern'),
   ('c0000000-0000-4000-8000-000000000011', 'European Barracuda', 'Sphyraena sphyraena', '{"en":"European Barracuda","he":"ברקודה"}', ARRAY['barracuda'], 'Coastal pelagic', ARRAY['pier','boat'], 1, 30, 'least_concern'),
   ('c0000000-0000-4000-8000-000000000012', 'European Pilchard', 'Sardina pilchardus', '{"en":"European Pilchard","he":"סרדין"}', ARRAY['sardine'], 'Pelagic schools', ARRAY['pier','boat'], 1, 50, 'least_concern'),
-  ('c0000000-0000-4000-8000-000000000013', 'Striped Red Mullet', 'Mullus surmuletus', '{"en":"Striped Red Mullet","he":"סולטאן ברבוניה"}', ARRAY['red mullet'], 'Sandy bottoms', ARRAY['shore'], 5, 100, 'least_concern'),
-  ('c0000000-0000-4000-8000-000000000014', 'White Seabream', 'Diplodus sargus', '{"en":"White Seabream","he":"סארגוס"}', ARRAY['seabream'], 'Rocky and sandy', ARRAY['shore','rocks'], 1, 20, 'least_concern'),
+  ('c0000000-0000-4000-8000-000000000013', 'Red Mullet', 'Mullus surmuletus', '{"en":"Red Mullet","he":"ברבוניה"}', ARRAY['red mullet','barbunia'], 'Sandy bottoms', ARRAY['shore'], 5, 100, 'least_concern'),
+  ('c0000000-0000-4000-8000-000000000014', 'White Seabream', 'Diplodus sargus', '{"en":"White Seabream","he":"סרגוס"}', ARRAY['seabream','sargos'], 'Rocky and sandy', ARRAY['shore','rocks'], 1, 20, 'least_concern'),
   ('c0000000-0000-4000-8000-000000000015', 'Leerfish', 'Lichia amia', '{"en":"Leerfish","he":"ליציה"}', ARRAY['leerfish'], 'Surf zone sandy beaches', ARRAY['shore'], 1, 15, 'least_concern');
 
 INSERT INTO spot_species (spot_id, species_id, likelihood, seasonal_months, preferred_methods, preferred_baits, confidence_score, source_id) VALUES

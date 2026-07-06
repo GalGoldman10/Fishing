@@ -10,6 +10,7 @@ import { Card } from '@/components/common/Button';
 import { LoadingState } from '@/components/common/StateViews';
 import { searchSpecies } from '@/features/spots/spotService';
 import { getLocalizedSpeciesText } from '@/lib/mock/speciesProfiles';
+import { resolveLang } from '@/lib/localization/localizedText';
 import { SpeciesSummary } from '@/types/fishing';
 import { spacing, borderRadius } from '@/constants/theme';
 
@@ -79,9 +80,10 @@ function SpeciesCard({
 }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const localName = species.localizedNames?.[language] ?? species.commonName;
+  const lang = resolveLang(language);
+  const localName = species.localizedNames?.[lang] ?? species.commonName;
   const habitat =
-    getLocalizedSpeciesText(species.id, 'habitat', language) ?? species.habitat;
+    getLocalizedSpeciesText(species.id, 'habitat', lang) ?? species.habitat;
 
   return (
     <Pressable onPress={onPress}>

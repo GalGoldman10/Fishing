@@ -1,5 +1,10 @@
 import type { SupportedLanguage } from './i18n';
 
+/** Normalize i18n / device language codes to a supported app language. */
+export function resolveLang(language: string | undefined): SupportedLanguage {
+  return language?.startsWith('he') ? 'he' : 'en';
+}
+
 /** Localized database content: every field carries all supported languages. */
 export interface LocalizedText {
   en: string;

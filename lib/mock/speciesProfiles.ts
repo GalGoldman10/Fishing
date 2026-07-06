@@ -1,3 +1,5 @@
+import { resolveLang } from '@/lib/localization/localizedText';
+
 export interface SpeciesProfile {
   id: string;
   description: { en: string; he: string };
@@ -288,6 +290,6 @@ export function getLocalizedSpeciesText(
 ): string | undefined {
   const profile = SPECIES_PROFILES[id];
   if (!profile) return undefined;
-  const lang = language === 'he' ? 'he' : 'en';
+  const lang = resolveLang(language);
   return profile[field][lang];
 }

@@ -49,7 +49,7 @@ export const BEACH_PROFILES: Record<string, BeachProfile> = {
     },
     localTips: {
       en: 'Mullet often feed in the surf zone close to shore. Sea bass at dawn near the breakwater south of Gordon.',
-      he: 'בורי ניזון לעיתים קרובות באזור הגלים. לוקוס ים בשעות השחר ליד השובר דרומית לגורדון.',
+      he: 'בורי ניזון לעיתים קרובות באזור הגלים. לברק בשעות השחר ליד השובר דרומית לגורדון.',
     },
   },
 
