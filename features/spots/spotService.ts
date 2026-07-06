@@ -1,5 +1,7 @@
 import { isMockMode } from '@/lib/config/env';
 import { DEMO_SPOTS, DEMO_SPECIES, DEMO_CONDITIONS, getDemoSpotDetails, getDemoSpeciesDetails } from '@/lib/mock/demoData';
+import { getSpeciesProfile } from '@/lib/mock/speciesProfiles';
+import { resolveSpeciesGuideId } from '@/lib/mock/mediterraneanFishGuide';
 import { supabase } from '@/lib/api/supabase';
 import {
   FishingSpotSummary,
@@ -92,13 +94,17 @@ export async function getNearbySpots(
 export async function searchSpecies(query?: string): Promise<SpeciesSummary[]> {
   if (isMockMode()) {
     if (!query) return DEMO_SPECIES;
-    const q = query.toLowerCase();
-    return DEMO_SPECIES.filter(
-      (s) =>
+    const q = query.toLowerCase().trim();
+    return DEMO_SPECIES.filter((s) => {
+      const profile = getSpeciesProfile(s.id);
+      return (
         s.commonName.toLowerCase().includes(q) ||
         s.scientificName?.toLowerCase().includes(q) ||
-        s.localizedNames?.he?.includes(query),
-    );
+        s.localizedNames?.he?.includes(query.trim()) ||
+        s.localizedNames?.en?.toLowerCase().includes(q) ||
+        profile?.aliases.some((alias) => alias.toLowerCase().includes(q) || alias.includes(query.trim()))
+      );
+    });
   }
 
   const { data, error } = await supabase
@@ -112,7 +118,7 @@ export async function searchSpecies(query?: string): Promise<SpeciesSummary[]> {
 }
 
 export async function getSpeciesById(id: string): Promise<SpeciesDetails | null> {
-  if (isMockMode()) return getDemoSpeciesDetails(id);
+  if (isMockMode()) return getDemoSpeciesDetails(id) ?? getDemoSpeciesDetails(resolveSpeciesGuideId(id));
 
   const { data, error } = await supabase.from('species').select('*').eq('id', id).single();
   if (error) return null;

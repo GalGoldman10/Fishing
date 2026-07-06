@@ -1,4 +1,4 @@
-import { ScrollView, Text, StyleSheet } from 'react-native';
+import { ScrollView, Text, StyleSheet, Linking, Pressable } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +15,16 @@ function pickLocalized(
 ): string | undefined {
   if (localized) return localized[resolveLang(language)];
   return fallback;
+}
+
+function Section({ title, body, colors }: { title: string; body?: string; colors: ReturnType<typeof useTheme>['colors'] }) {
+  if (!body || body.trim() === '' || body.startsWith('לא צוין') || body.startsWith('Not specified')) return null;
+  return (
+    <>
+      <Text style={[styles.section, { color: colors.text }]}>{title}</Text>
+      <Text style={{ color: colors.textSecondary, lineHeight: 22 }}>{body}</Text>
+    </>
+  );
 }
 
 export default function SpeciesDetailScreen() {
@@ -37,8 +47,11 @@ export default function SpeciesDetailScreen() {
   const description = pickLocalized(lang, content?.description, species.description);
   const habitat = pickLocalized(lang, content?.habitat, species.habitat);
   const handlingNotes = pickLocalized(lang, content?.handlingNotes, species.handlingNotes);
-  const consumptionWarning = pickLocalized(lang, content?.consumptionWarning, species.consumptionWarning);
+  const cookingMethods = pickLocalized(lang, content?.cookingMethods, species.consumptionWarning);
   const identificationNotes = pickLocalized(lang, content?.identificationNotes, species.identificationNotes);
+  const diet = pickLocalized(lang, content?.diet);
+  const sizeSeason = pickLocalized(lang, content?.sizeSeason);
+  const aliases = content?.aliases?.filter((alias) => alias !== name);
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -46,26 +59,29 @@ export default function SpeciesDetailScreen() {
       {species.scientificName && (
         <Text style={[styles.scientific, { color: colors.textMuted }]}>{species.scientificName}</Text>
       )}
+      {aliases && aliases.length > 0 && (
+        <Text style={{ color: colors.textMuted, marginTop: spacing.xs }}>
+          {t('species.aliases')}: {aliases.join(', ')}
+        </Text>
+      )}
       {description && (
         <Text style={{ color: colors.textSecondary, marginTop: spacing.md, lineHeight: 22 }}>{description}</Text>
       )}
-      {habitat && (
-        <>
-          <Text style={[styles.section, { color: colors.text }]}>{t('species.habitat')}</Text>
-          <Text style={{ color: colors.textSecondary, lineHeight: 22 }}>{habitat}</Text>
-        </>
-      )}
-      {identificationNotes && (
-        <>
-          <Text style={[styles.section, { color: colors.text }]}>{t('species.identification')}</Text>
-          <Text style={{ color: colors.textSecondary, lineHeight: 22 }}>{identificationNotes}</Text>
-        </>
-      )}
+      <Section title={t('species.habitat')} body={habitat} colors={colors} />
+      <Section title={t('species.identification')} body={identificationNotes} colors={colors} />
+      <Section title={t('species.diet')} body={diet} colors={colors} />
+      <Section title={t('species.sizeSeason')} body={sizeSeason} colors={colors} />
+      <Section title={t('species.cooking')} body={cookingMethods} colors={colors} />
       {handlingNotes && (
         <Text style={{ color: colors.warning, marginTop: spacing.md, lineHeight: 22 }}>{handlingNotes}</Text>
       )}
-      {consumptionWarning && (
-        <Text style={{ color: colors.error, marginTop: spacing.sm, lineHeight: 22 }}>{consumptionWarning}</Text>
+      {species.conservationStatus === 'vulnerable' && (
+        <Text style={{ color: colors.warning, marginTop: spacing.md, lineHeight: 22 }}>{t('species.protected')}</Text>
+      )}
+      {content?.sourceUrl && (
+        <Pressable onPress={() => void Linking.openURL(content.sourceUrl!)} style={{ marginTop: spacing.lg }}>
+          <Text style={{ color: colors.accent, textDecorationLine: 'underline' }}>{t('species.source')}</Text>
+        </Pressable>
       )}
     </ScrollView>
   );

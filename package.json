@@ -47,7 +47,8 @@
     "jest-expo": "^57.0.1",
     "react-test-renderer": "^19.2.3",
     "ts-jest": "^29.4.11",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "expo start",
@@ -56,6 +57,7 @@
     "web": "expo start --web",
     "test": "jest",
     "test:watch": "jest --watch",
+    "import:fish-guide": "node scripts/import-mediterranean-fish-guide.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit"
   },

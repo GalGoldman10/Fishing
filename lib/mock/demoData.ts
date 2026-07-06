@@ -1,6 +1,7 @@
 import { FishingSpotDetails, FishingSpotSummary, SpeciesDetails, SpeciesSummary, MarineConditions } from '@/types/fishing';
 import { getBeachProfile } from '@/lib/mock/beachProfiles';
 import { getSpeciesProfile } from '@/lib/mock/speciesProfiles';
+import { MEDITERRANEAN_FISH_GUIDE, resolveSpeciesGuideId } from '@/lib/mock/mediterraneanFishGuide';
 
 // Coordinates were audited on 2026-07-03: several pins previously used
 // city-center positions instead of the actual shoreline fishing access point.
@@ -173,23 +174,25 @@ export const DEMO_SPOTS: FishingSpotSummary[] = [
   },
 ];
 
-export const DEMO_SPECIES: SpeciesSummary[] = [
-  { id: 'sp-1', commonName: 'Sea Bass', scientificName: 'Dicentrarchus labrax', localizedNames: { en: 'Sea Bass', he: 'לברק' }, habitat: 'Coastal waters, rocky and sandy areas', environmentTypes: ['shore', 'pier'], conservationStatus: 'least_concern' },
-  { id: 'sp-2', commonName: 'Gilthead Bream', scientificName: 'Sparus aurata', localizedNames: { en: 'Gilthead Bream', he: 'דניס' }, habitat: 'Rocky reefs and sandy bottoms', environmentTypes: ['shore', 'rocks'], conservationStatus: 'least_concern' },
-  { id: 'sp-3', commonName: 'Sand Steenbras', scientificName: 'Lithognathus mormyrus', localizedNames: { en: 'Sand Steenbras', he: 'מרמור' }, habitat: 'Sandy bottoms near shore', environmentTypes: ['shore'], conservationStatus: 'least_concern' },
-  { id: 'sp-4', commonName: 'Red Porgy', scientificName: 'Pagrus pagrus', localizedNames: { en: 'Red Porgy', he: 'פארידה' }, habitat: 'Rocky areas', environmentTypes: ['rocks', 'pier'], conservationStatus: 'least_concern' },
-  { id: 'sp-5', commonName: 'Bluefish', scientificName: 'Pomatomus saltatrix', localizedNames: { en: 'Bluefish', he: 'גומבר' }, habitat: 'Open coastal waters', environmentTypes: ['shore', 'pier', 'boat'], conservationStatus: 'least_concern' },
-  { id: 'sp-6', commonName: 'Atlantic Mackerel', scientificName: 'Scomber scombrus', localizedNames: { en: 'Atlantic Mackerel', he: 'מקרל' }, habitat: 'Pelagic, near surface', environmentTypes: ['pier', 'boat'], conservationStatus: 'least_concern' },
-  { id: 'sp-7', commonName: 'Grey Mullet', scientificName: 'Mugil cephalus', localizedNames: { en: 'Grey Mullet', he: 'בורי' }, habitat: 'Estuaries and shallow coastal', environmentTypes: ['shore', 'harbor'], conservationStatus: 'least_concern' },
-  { id: 'sp-8', commonName: 'Dusky Grouper', scientificName: 'Epinephelus marginatus', localizedNames: { en: 'Dusky Grouper', he: 'לוקוס' }, habitat: 'Rocky reefs', environmentTypes: ['rocks'], conservationStatus: 'vulnerable' },
-  { id: 'sp-9', commonName: 'Common Sole', scientificName: 'Solea solea', localizedNames: { en: 'Common Sole', he: 'דג לשון' }, habitat: 'Sandy and muddy bottoms', environmentTypes: ['shore'], conservationStatus: 'least_concern' },
-  { id: 'sp-10', commonName: 'Greater Amberjack', scientificName: 'Seriola dumerili', localizedNames: { en: 'Greater Amberjack', he: 'אינטיאס' }, habitat: 'Offshore reefs', environmentTypes: ['boat', 'pier'], conservationStatus: 'least_concern' },
-  { id: 'sp-11', commonName: 'European Barracuda', scientificName: 'Sphyraena sphyraena', localizedNames: { en: 'European Barracuda', he: 'ברקודה' }, habitat: 'Coastal pelagic', environmentTypes: ['pier', 'boat'], conservationStatus: 'least_concern' },
-  { id: 'sp-12', commonName: 'European Pilchard', scientificName: 'Sardina pilchardus', localizedNames: { en: 'European Pilchard', he: 'סרדין' }, habitat: 'Pelagic schools', environmentTypes: ['pier', 'boat'], conservationStatus: 'least_concern' },
-  { id: 'sp-13', commonName: 'Red Mullet', scientificName: 'Mullus surmuletus', localizedNames: { en: 'Red Mullet', he: 'ברבוניה' }, habitat: 'Sandy and muddy bottoms', environmentTypes: ['shore'], conservationStatus: 'least_concern' },
-  { id: 'sp-14', commonName: 'White Seabream', scientificName: 'Diplodus sargus', localizedNames: { en: 'White Seabream', he: 'סרגוס' }, habitat: 'Rocky and sandy areas', environmentTypes: ['shore', 'rocks'], conservationStatus: 'least_concern' },
-  { id: 'sp-15', commonName: 'Leerfish', scientificName: 'Lichia amia', localizedNames: { en: 'Leerfish (Arian)', he: 'אריאן' }, habitat: 'Sandy beaches and surf zone', environmentTypes: ['shore'], conservationStatus: 'least_concern' },
-];
+export const DEMO_SPECIES: SpeciesSummary[] = MEDITERRANEAN_FISH_GUIDE.map((entry) => ({
+  id: entry.id,
+  commonName: entry.englishName,
+  localizedNames: { en: entry.englishName, he: entry.hebrewName },
+  habitat: entry.habitat.he,
+  environmentTypes: inferEnvironmentTypes(entry.habitat.he),
+  conservationStatus: /לוקוס|דקר|מוגן/i.test(`${entry.hebrewName} ${entry.description.he}`) ? 'vulnerable' : 'least_concern',
+}));
+
+function inferEnvironmentTypes(habitatHe: string): SpeciesSummary['environmentTypes'] {
+  const types = new Set<SpeciesSummary['environmentTypes'][number]>();
+  if (/נמל|מזח|רציף|שובר/i.test(habitatHe)) types.add('pier');
+  if (/סלע|שונית|צוק/i.test(habitatHe)) types.add('rocks');
+  if (/סירה|עומק|פתוח|פלגי|ים פתוח/i.test(habitatHe)) types.add('boat');
+  if (/נמל|מעגן/i.test(habitatHe)) types.add('harbor');
+  if (types.size === 0) types.add('shore');
+  else types.add('shore');
+  return [...types];
+}
 
 export const DEMO_CONDITIONS: MarineConditions = {
   weather: 'Partly cloudy',
@@ -218,7 +221,10 @@ export function getDemoSpotDetails(id: string): FishingSpotDetails | null {
   const profile = getBeachProfile(id);
   const speciesEntries = profile
     ? profile.speciesIds.map((entry) => {
-        const s = DEMO_SPECIES.find((sp) => sp.id === entry.id);
+        const resolvedId = resolveSpeciesGuideId(entry.id);
+        const s =
+          DEMO_SPECIES.find((sp) => sp.id === entry.id) ??
+          DEMO_SPECIES.find((sp) => sp.id === resolvedId);
         if (!s) return null;
         return {
           speciesId: s.id,
@@ -327,27 +333,36 @@ export function getDemoSpotDetails(id: string): FishingSpotDetails | null {
 }
 
 export function getDemoSpeciesDetails(id: string): SpeciesDetails | null {
-  const species = DEMO_SPECIES.find((s) => s.id === id);
+  const resolvedId = resolveSpeciesGuideId(id);
+  const species =
+    DEMO_SPECIES.find((s) => s.id === id) ??
+    DEMO_SPECIES.find((s) => s.id === resolvedId);
   if (!species) return null;
-  const profile = getSpeciesProfile(id);
+  const profile = getSpeciesProfile(id) ?? getSpeciesProfile(resolvedId);
   return {
     ...species,
     habitat: profile?.habitat.en ?? species.habitat,
-    aliases: [species.commonName],
-    description: profile?.description.en ?? `Demonstration species entry for ${species.commonName}.`,
-    identificationNotes: profile?.identificationNotes.en ?? 'Consult a field guide for positive identification.',
+    aliases: profile?.aliases ?? [species.commonName],
+    description: profile?.description.en ?? species.commonName,
+    identificationNotes: profile?.identificationNotes.en,
     preferredDepthMin: 1,
     preferredDepthMax: 30,
     activeTimes: ['dawn', 'dusk', 'night'],
-    handlingNotes: profile?.handlingNotes.en ?? 'Handle with wet hands. Watch for spines.',
-    consumptionWarning: profile?.consumptionWarning.en ?? 'Only consume fish you can positively identify.',
+    handlingNotes: profile?.handlingNotes.en,
+    consumptionWarning: profile?.cookingMethods.en,
     localizedContent: profile
       ? {
           description: profile.description,
           habitat: profile.habitat,
           identificationNotes: profile.identificationNotes,
           handlingNotes: profile.handlingNotes,
-          consumptionWarning: profile.consumptionWarning,
+          consumptionWarning: profile.cookingMethods,
+          diet: profile.diet,
+          sizeSeason: profile.sizeSeason,
+          cookingMethods: profile.cookingMethods,
+          aliases: profile.aliases,
+          sourceUrl: profile.sourceUrl,
+          infoStatus: profile.infoStatus,
         }
       : undefined,
   };

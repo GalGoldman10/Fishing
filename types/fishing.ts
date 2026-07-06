@@ -113,6 +113,12 @@ export interface SpeciesDetails extends SpeciesSummary {
     identificationNotes: { en: string; he: string };
     handlingNotes: { en: string; he: string };
     consumptionWarning: { en: string; he: string };
+    diet?: { en: string; he: string };
+    sizeSeason?: { en: string; he: string };
+    cookingMethods?: { en: string; he: string };
+    aliases?: string[];
+    sourceUrl?: string;
+    infoStatus?: string;
   };
 }
 
