@@ -42,6 +42,8 @@ function LocalizedStack() {
       <Stack.Screen name="catch/index" options={{ title: t('catch.title') }} />
       <Stack.Screen name="catch/new" options={{ title: t('catch.newCatch') }} />
       <Stack.Screen name="species/[id]" options={{ title: t('screens.speciesDetails') }} />
+      <Stack.Screen name="identify/index" options={{ title: t('identify.title') }} />
+      <Stack.Screen name="identify/[id]" options={{ title: t('identify.historyDetail') }} />
       <Stack.Screen name="profile/edit" options={{ title: t('profile.editProfile') }} />
       <Stack.Screen name="admin" options={{ headerShown: false }} />
     </Stack>

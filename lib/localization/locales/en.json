@@ -163,13 +163,47 @@
     "saveChecklist": "Save Checklist"
   },
   "species": {
-    "title": "Species Directory",
+    "title": "Fish Guide",
+    "directoryTitle": "Species Directory",
     "habitat": "Habitat",
     "identification": "Identification",
     "methods": "Fishing Methods",
     "baits": "Baits",
     "lures": "Lures",
     "protected": "Protected species warning"
+  },
+  "identify": {
+    "title": "Fish Recognition",
+    "subtitle": "Upload or photograph a fish and get practical angling advice from your fishing guide.",
+    "cardDesc": "Take a photo or upload from gallery to identify a fish",
+    "uploadGallery": "Upload from Gallery",
+    "uploadGalleryDesc": "Choose an existing photo of a fish from your device",
+    "takePhoto": "Take Photo",
+    "takePhotoDesc": "Use your camera to photograph a fish on the spot",
+    "identifyButton": "Identify Fish",
+    "chooseAnother": "Choose Another Photo",
+    "identifyAnother": "Identify Another Fish",
+    "analyzing": "Analyzing your photo…",
+    "analyzingHint": "Our fishing guide is examining markings, shape, and color patterns",
+    "habitat": "Habitat",
+    "bestBait": "Best Bait & Lures",
+    "techniques": "Fishing Technique",
+    "commonInIsrael": "Common in Israel / Mediterranean",
+    "uncommonInIsrael": "Less common locally",
+    "otherPossibilities": "Other possible matches",
+    "viewSpeciesGuide": "View in Species Guide",
+    "disclaimer": "Fish recognition can be wrong. Always verify local fishing rules and protected species before keeping a fish.",
+    "historyTitle": "Recognition History",
+    "historyDetail": "Past Identification",
+    "historyNotFound": "Identification not found",
+    "galleryPermission": "Photo library permission is required to upload images.",
+    "cameraPermission": "Camera permission is required to take photos.",
+    "errors": {
+      "noFish": "No fish detected. Please upload a clearer photo.",
+      "blurry": "Image is too blurry. Try another photo.",
+      "network": "Could not connect. Check your internet and try again.",
+      "apiFailed": "Identification failed. Please try again."
+    }
   },
   "trip": {
     "title": "Trip Planner",

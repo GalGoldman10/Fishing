@@ -130,6 +130,37 @@ export const tripPlanInputSchema = z.object({
   notificationEnabled: z.boolean().default(false),
 });
 
+export const fishMatchSchema = z.object({
+  speciesId: z.string().optional(),
+  name: z.string(),
+  scientificName: z.string().optional(),
+  confidence: z.number().min(0).max(100),
+  description: z.string(),
+  commonInIsrael: z.boolean().optional(),
+  habitat: z.string(),
+  bestBait: z.string(),
+  techniques: z.string(),
+  safetyWarning: z.string().optional(),
+});
+
+export type FishMatch = z.infer<typeof fishMatchSchema>;
+
+export const fishRecognitionResponseSchema = z.object({
+  status: z.enum(['success', 'uncertain', 'no_fish', 'blurry', 'error']),
+  primaryMatch: fishMatchSchema.optional(),
+  alternativeMatches: z.array(fishMatchSchema).optional(),
+  uncertainMessage: z.string().optional(),
+  errorMessage: z.string().optional(),
+});
+
+export type FishRecognitionResponse = z.infer<typeof fishRecognitionResponseSchema>;
+
+export const fishIdentifyInputSchema = z.object({
+  imageBase64: z.string().min(100),
+  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']).default('image/jpeg'),
+  language: z.enum(['en', 'he']).default('en'),
+});
+
 export const catchLogInputSchema = z.object({
   spotId: z.string().uuid().optional(),
   speciesId: z.string().uuid().optional(),

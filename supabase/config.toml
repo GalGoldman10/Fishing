@@ -35,6 +35,9 @@ backend = "postgres"
 [functions.fishing-assistant]
 verify_jwt = false
 
+[functions.fish-identify]
+verify_jwt = false
+
 [functions.fishing-research]
 verify_jwt = false
 
