@@ -23,7 +23,16 @@ export interface Database {
         fishing_setup: Json;
         created_at: string;
         updated_at: string;
-      }, { id: string; display_name?: string | null }>;
+      }, {
+        id: string;
+        display_name?: string | null;
+        avatar_url?: string | null;
+        preferred_language?: string;
+        experience_level?: string;
+        favorite_spot_id?: string | null;
+        favorite_spot_ids?: Json;
+        fishing_setup?: Json;
+      }>;
       fishing_spots: TableDef<{
         id: string;
         slug: string;
@@ -79,6 +88,7 @@ export interface Database {
           user_id: string;
           spot_id: string | null;
           species_id: string | null;
+          species_name: string | null;
           caught_at: string;
           estimated_length: number | null;
           estimated_weight: number | null;
@@ -96,6 +106,7 @@ export interface Database {
           caught_at: string;
           spot_id?: string | null;
           species_id?: string | null;
+          species_name?: string | null;
           estimated_length?: number | null;
           estimated_weight?: number | null;
           bait_or_lure?: string | null;

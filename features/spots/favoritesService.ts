@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { create } from 'zustand';
-import { isMockMode } from '@/lib/config/env';
+import { isSupabaseAuthEnabled } from '@/lib/config/env';
 import { supabase } from '@/lib/api/supabase';
 
 const FAVORITES_KEY = 'fishguide_favorites';
@@ -42,21 +42,34 @@ function parseFavoriteSpotIds(raw: unknown): string[] {
   return raw.filter((id): id is string => typeof id === 'string');
 }
 
+export async function mergeLocalFavoritesToCloud(userId: string): Promise<void> {
+  const localIds = await readLocalFavorites();
+  if (localIds.length === 0) return;
+
+  const { data } = await supabase
+    .from('profiles')
+    .select('favorite_spot_ids')
+    .eq('id', userId)
+    .maybeSingle();
+
+  const serverIds = parseFavoriteSpotIds(data?.favorite_spot_ids);
+  if (serverIds.length > 0) return;
+
+  await supabase
+    .from('profiles')
+    .upsert({ id: userId, favorite_spot_ids: localIds }, { onConflict: 'id' });
+}
+
 export const useFavoritesStore = create<FavoritesStore>((set, get) => ({
   favoriteIds: new Set(),
 
   isFavorite: (spotId) => get().favoriteIds.has(spotId),
 
   loadFavorites: async () => {
-    if (isMockMode()) {
-      const ids = await readLocalFavorites();
-      set({ favoriteIds: new Set(ids) });
-      return;
-    }
-
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = isSupabaseAuthEnabled() ? await supabase.auth.getUser() : { data: { user: null } };
+
     if (!user) {
       const ids = await readLocalFavorites();
       set({ favoriteIds: new Set(ids) });
@@ -91,7 +104,7 @@ export const useFavoritesStore = create<FavoritesStore>((set, get) => ({
     const ids = [...next];
     await writeLocalFavorites(ids);
 
-    if (isMockMode()) return;
+    if (!isSupabaseAuthEnabled()) return;
 
     const {
       data: { user },

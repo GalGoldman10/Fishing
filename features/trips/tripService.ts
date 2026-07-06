@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { isMockMode } from '@/lib/config/env';
+import { isSupabaseAuthEnabled, usesDemoData } from '@/lib/config/env';
 import { supabase } from '@/lib/api/supabase';
 import type { Json } from '@/types/database';
 
@@ -28,7 +28,7 @@ export async function saveTripPlan(input: {
   notes?: string;
   notificationEnabled: boolean;
 }): Promise<void> {
-  if (isMockMode()) {
+  if (!isSupabaseAuthEnabled() || usesDemoData()) {
     useTripStore.getState().addMockTrip({
       id: `trip-${Date.now()}`,
       spotId: input.spotId,

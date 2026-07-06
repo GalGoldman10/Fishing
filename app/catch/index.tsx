@@ -1,9 +1,10 @@
+import { useEffect } from 'react';
 import { FlatList, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/components/common/ThemeProvider';
 import { Button } from '@/components/common/Button';
-import { useCatchStore } from '@/features/catches/catchService';
+import { loadCatches, useCatchStore } from '@/features/catches/catchService';
 import { formatDate } from '@/lib/localization/format';
 import { spacing } from '@/constants/theme';
 
@@ -12,6 +13,10 @@ export default function CatchLogScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const catches = useCatchStore((s) => s.catches);
+
+  useEffect(() => {
+    void loadCatches();
+  }, []);
 
   return (
     <FlatList

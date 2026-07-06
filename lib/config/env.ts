@@ -27,4 +27,15 @@ export function isAiChatAvailable(): boolean {
   return hasSupabaseBackend();
 }
 
-export const isMockMode = () => env.useMockData || !hasSupabaseBackend();
+/** Demo spots/species/conditions (no live DB tables required). */
+export function usesDemoData(): boolean {
+  return env.useMockData || !hasSupabaseBackend();
+}
+
+/** Legacy alias — true when demo data OR Supabase is unavailable. */
+export const isMockMode = usesDemoData;
+
+/** Auth, profiles, and user data sync require a configured Supabase project. */
+export function isSupabaseAuthEnabled(): boolean {
+  return hasSupabaseBackend();
+}

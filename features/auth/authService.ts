@@ -1,22 +1,26 @@
 import { supabase } from '@/lib/api/supabase';
 import { useAuthStore } from '@/stores/authStore';
-import { isMockMode } from '@/lib/config/env';
+import { isSupabaseAuthEnabled } from '@/lib/config/env';
 import { hydrateProfile, clearProfile } from '@/features/profile/profileService';
 import { useFavoritesStore } from '@/features/spots/favoritesService';
 import { useLanguageStore } from '@/stores/languageStore';
+import { mergeGuestDataToCloud } from '@/features/auth/userDataSync';
+import { loadCatches } from '@/features/catches/catchService';
 
 export interface SignUpResult {
   needsEmailConfirmation: boolean;
 }
 
 export async function syncUserDataAfterAuth(): Promise<void> {
+  await mergeGuestDataToCloud();
   await hydrateProfile();
   await useFavoritesStore.getState().loadFavorites();
   await useLanguageStore.getState().hydrate();
+  await loadCatches();
 }
 
 export function setupAuthStateListener(): () => void {
-  if (isMockMode()) return () => {};
+  if (!isSupabaseAuthEnabled()) return () => {};
 
   const {
     data: { subscription },
@@ -40,7 +44,7 @@ export async function restoreSession(): Promise<void> {
   const { setSession, setLoading } = useAuthStore.getState();
   setLoading(true);
 
-  if (isMockMode()) {
+  if (!isSupabaseAuthEnabled()) {
     setLoading(false);
     return;
   }
@@ -52,7 +56,7 @@ export async function restoreSession(): Promise<void> {
 }
 
 export async function signIn(email: string, password: string): Promise<void> {
-  if (isMockMode()) {
+  if (!isSupabaseAuthEnabled()) {
     useAuthStore.getState().setGuest(true);
     return;
   }
@@ -68,7 +72,7 @@ export async function signUp(
   password: string,
   displayName: string,
 ): Promise<SignUpResult> {
-  if (isMockMode()) {
+  if (!isSupabaseAuthEnabled()) {
     useAuthStore.getState().setGuest(true);
     return { needsEmailConfirmation: false };
   }
@@ -91,7 +95,7 @@ export async function signUp(
 }
 
 export async function signOut(): Promise<void> {
-  if (!isMockMode()) {
+  if (isSupabaseAuthEnabled()) {
     await supabase.auth.signOut();
   }
   useAuthStore.getState().signOut();
@@ -100,7 +104,7 @@ export async function signOut(): Promise<void> {
 }
 
 export async function deleteAccount(): Promise<void> {
-  if (isMockMode()) {
+  if (!isSupabaseAuthEnabled()) {
     useAuthStore.getState().signOut();
     return;
   }

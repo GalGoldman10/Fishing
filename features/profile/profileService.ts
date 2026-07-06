@@ -1,7 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { isMockMode } from '@/lib/config/env';
+import { isSupabaseAuthEnabled } from '@/lib/config/env';
 import { supabase } from '@/lib/api/supabase';
+import { uploadProfileAvatar } from '@/features/profile/avatarStorage';
 import {
   DEFAULT_FISHING_SETUP,
   DEFAULT_PROFILE,
@@ -9,8 +10,13 @@ import {
   UserProfileData,
   useProfileStore,
 } from '@/stores/profileStore';
+import type { Json } from '@/types/database';
 
 const PROFILE_STORAGE_KEY = 'fishguide_user_profile';
+
+export async function readLocalProfileSnapshot(): Promise<UserProfileData | null> {
+  return readStoredProfile();
+}
 
 async function readStoredProfile(): Promise<UserProfileData | null> {
   try {
@@ -55,6 +61,10 @@ function parseFishingSetup(raw: unknown): FishingSetup {
   };
 }
 
+function isEmptyFishingSetup(setup: FishingSetup): boolean {
+  return !Object.values(setup).some((value) => value.trim().length > 0);
+}
+
 function toStoreData(row: {
   display_name?: string | null;
   avatar_url?: string | null;
@@ -78,15 +88,63 @@ function toProfileRow(profile: UserProfileData, userId: string) {
     avatar_url: profile.avatarUri,
     experience_level: profile.experienceLevel,
     favorite_spot_id: profile.favoriteSpotId,
-    fishing_setup: profile.fishingSetup,
+    fishing_setup: { ...profile.fishingSetup } as Json,
   };
+}
+
+function isDefaultServerProfile(row: {
+  display_name?: string | null;
+  avatar_url?: string | null;
+  favorite_spot_id?: string | null;
+  fishing_setup?: unknown;
+  experience_level?: string | null;
+}): boolean {
+  const setup = parseFishingSetup(row.fishing_setup);
+  return (
+    !row.display_name &&
+    !row.avatar_url &&
+    !row.favorite_spot_id &&
+    isEmptyFishingSetup(setup) &&
+    (row.experience_level ?? 'beginner') === 'beginner'
+  );
+}
+
+function hasMeaningfulLocalProfile(local: UserProfileData): boolean {
+  return Boolean(
+    local.displayName.trim() ||
+      local.avatarUri ||
+      local.favoriteSpotId ||
+      local.experienceLevel !== 'beginner' ||
+      !isEmptyFishingSetup(local.fishingSetup),
+  );
+}
+
+export async function mergeLocalProfileToCloud(userId: string): Promise<void> {
+  const local = await readStoredProfile();
+  if (!local || !hasMeaningfulLocalProfile(local)) return;
+
+  const { data: row } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+  if (row && !isDefaultServerProfile(row)) return;
+
+  let avatarUri = local.avatarUri;
+  if (avatarUri && !avatarUri.startsWith('http')) {
+    try {
+      avatarUri = await uploadProfileAvatar(userId, avatarUri);
+    } catch {
+      avatarUri = null;
+    }
+  }
+
+  await supabase
+    .from('profiles')
+    .upsert(toProfileRow({ ...local, avatarUri }, userId), { onConflict: 'id' });
 }
 
 export async function hydrateProfile(): Promise<void> {
   const local = await readStoredProfile();
   const base = local ?? DEFAULT_PROFILE;
 
-  if (!isMockMode()) {
+  if (isSupabaseAuthEnabled()) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -120,14 +178,27 @@ export async function saveProfile(patch: Partial<UserProfileData>): Promise<void
   useProfileStore.getState().hydrate(next);
   await writeStoredProfile(next);
 
-  if (isMockMode()) return;
+  if (!isSupabaseAuthEnabled()) return;
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase.from('profiles').upsert(toProfileRow(next, user.id), { onConflict: 'id' });
+  let avatarUri = next.avatarUri;
+  if (avatarUri && !avatarUri.startsWith('http')) {
+    avatarUri = await uploadProfileAvatar(user.id, avatarUri);
+  }
+
+  await supabase
+    .from('profiles')
+    .upsert(toProfileRow({ ...next, avatarUri }, user.id), { onConflict: 'id' });
+
+  if (avatarUri !== next.avatarUri) {
+    const saved = { ...next, avatarUri };
+    useProfileStore.getState().hydrate(saved);
+    await writeStoredProfile(saved);
+  }
 }
 
 export async function clearProfile(): Promise<void> {

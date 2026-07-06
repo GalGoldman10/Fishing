@@ -1,5 +1,5 @@
 import { WebPlaceEnrichment, WebNearbyFeature, WebSourceAttribution } from '@/types/webInfo';
-import { isMockMode } from '@/lib/config/env';
+import { hasSupabaseBackend, usesDemoData } from '@/lib/config/env';
 import { supabase } from '@/lib/api/supabase';
 import { buildWikipediaFishingQuery } from '@/lib/localization/fishingSearch';
 
@@ -132,7 +132,7 @@ export async function fetchWebPlaceInfo(
   spotName: string,
   language = 'en',
 ): Promise<WebPlaceEnrichment> {
-  if (!isMockMode()) {
+  if (hasSupabaseBackend()) {
     const edge = await fetchViaEdgeFunction(latitude, longitude, spotName, language);
     if (edge) return edge;
   }

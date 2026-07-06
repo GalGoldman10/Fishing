@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { Platform, I18nManager } from 'react-native';
 import i18n, { SupportedLanguage, supportedLanguages, syncDocumentLanguage } from '@/lib/localization/i18n';
-import { isMockMode } from '@/lib/config/env';
+import { isSupabaseAuthEnabled } from '@/lib/config/env';
 import { supabase } from '@/lib/api/supabase';
 
 const STORAGE_KEY = 'fishguide_language';
@@ -33,7 +33,7 @@ async function readStoredLanguage(): Promise<SupportedLanguage | null> {
 }
 
 async function readProfileLanguage(): Promise<SupportedLanguage | null> {
-  if (isMockMode()) return null;
+  if (!isSupabaseAuthEnabled()) return null;
   try {
     const {
       data: { user },
@@ -62,7 +62,7 @@ async function persistLanguage(language: SupportedLanguage): Promise<void> {
   }
 
   // Also store on the signed-in user's profile so the choice follows them across devices.
-  if (!isMockMode()) {
+  if (isSupabaseAuthEnabled()) {
     try {
       const {
         data: { user },

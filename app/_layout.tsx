@@ -10,6 +10,7 @@ import { DirectionProvider } from '@/components/common/DirectionProvider';
 import { useTheme } from '@/components/common/ThemeProvider';
 import { useAuthStore } from '@/stores/authStore';
 import { useLanguageStore } from '@/stores/languageStore';
+import { loadCatches } from '@/features/catches/catchService';
 import { restoreSession, setupAuthStateListener } from '@/features/auth/authService';
 import { hydrateProfile } from '@/features/profile/profileService';
 import { useFavoritesStore } from '@/features/spots/favoritesService';
@@ -63,6 +64,7 @@ function RootNavigator() {
       await restoreSession();
       await hydrateProfile();
       await useFavoritesStore.getState().loadFavorites();
+      await loadCatches();
       setReady(true);
       await SplashScreen.hideAsync();
     })();
