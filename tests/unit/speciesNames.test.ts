@@ -17,7 +17,7 @@ const EXPECTED_HEBREW_NAMES: Record<string, string> = {
   'sp-12': 'סרדין',
   'sp-13': 'ברבוניה',
   'sp-14': 'סרגוס',
-  'sp-15': 'ליציה',
+  'sp-15': 'אריאן',
 };
 
 describe('Fish Guide species Hebrew names', () => {
@@ -36,5 +36,11 @@ describe('Fish Guide species Hebrew names', () => {
     const habitat = getLocalizedSpeciesText('sp-1', 'habitat', 'he');
     expect(habitat).toBe('מים חופיים, אזורים סלעיים וחוליים');
     expect(habitat).not.toMatch(/Coastal|rocky and sandy/i);
+  });
+
+  it('uses established Hebrew name for Lichia amia, not genus transliteration', () => {
+    const leerfish = DEMO_SPECIES.find((s) => s.scientificName === 'Lichia amia');
+    expect(leerfish?.localizedNames?.he).toBe('אריאן');
+    expect(leerfish?.localizedNames?.he).not.toBe('ליציה');
   });
 });

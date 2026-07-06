@@ -53,7 +53,7 @@ export const LURE_TOPICS: TechniqueTopic[] = [
     },
     targetFish: {
       en: 'Sea bass, bluefish, barracuda, sargo, mackerel, leerfish — varies by lure type and retrieve speed.',
-      he: 'לוקוס, גומבר, ברקודה, סרגוס, מקרל, ליציה — משתנה לפי סוג דמוי ומהירות הובלה.',
+      he: 'לברק, גומבר, ברקודה, סרגוס, מקרל, אריאן — משתנה לפי סוג דמוי ומהירות הובלה.',
     },
     beginnerNote: {
       en: 'Start with one medium light rod (5–25g), a few minnows (one F, one S), and practice twitch-pause on a breakwater before buying more lures.',
@@ -122,7 +122,7 @@ export const LURE_TOPICS: TechniqueTopic[] = [
       en: 'Popper creates splash and noise on the surface — twitch rod tip to make it "bloop" and pause; strikes are explosive and visual.',
       he: 'פופר יוצר התזה ורעש על פני המים — jerk בקצה החכה ל-"bloop" ו-pause; נגיעות explosive וvisual.',
     },
-    whenBest: { en: 'Calm dawn/dusk, leerfish and bluefish in surf, barracuda near piers.', he: 'שחר/דמדומים רגועים, ליציה וגומבר בגלים, ברקודה ליד מזחים.' },
+    whenBest: { en: 'Calm dawn/dusk, leerfish and bluefish in surf, barracuda near piers.', he: 'שחר/דמדומים רגועים, אריאן וגומבר בגלים, ברקודה ליד מזחים.' },
     mistakes: { en: 'Retrieving too fast without pauses; using poppers in heavy chop where fish cannot see them.', he: 'retrieve מהיר בלי pause; פופרים בגלים כבדים שwhere דגים לא רואים.' },
   },
   {

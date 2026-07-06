@@ -263,13 +263,13 @@ export const SPECIES_PROFILES: Record<string, SpeciesProfile> = {
   'sp-15': {
     id: 'sp-15',
     description: {
-      en: 'Exciting surf-zone predator. Follows baitfish along sandy beaches in summer.',
-      he: 'טורף מרגש באזור הגלים. עוקב אחר פיתיון לאורך חופי חול בקיץ.',
+      en: 'Exciting surf-zone predator. Follows baitfish along sandy beaches in summer. Rare but prized when caught.',
+      he: 'טורף מרגש באזור הגלים. עוקב אחר פיתיון לאורך חופי חול בקיץ. נדיר אך מבוקש כשנתפס.',
     },
     habitat: { en: 'Sandy beaches and surf zone', he: 'חופי חול ואזור הגלים' },
     identificationNotes: {
-      en: 'Silver torpedo shape, forked tail, no spots on adults.',
-      he: 'צורת טורפדו כסופה, זנב מזלג, ללא כתמים בבוגרים.',
+      en: 'Silver torpedo shape, forked tail, no spots on adults. Also known as amit arian.',
+      he: 'צורת טורפדו כסופה, זנב מזלג, ללא כתמים בבוגרים. ידוע גם כאמית אריאן.',
     },
     handlingNotes: { en: 'Powerful runs — ensure drag is set.', he: 'בריחות חזקות — ודאו שהבלם מכוון.' },
     consumptionWarning: {

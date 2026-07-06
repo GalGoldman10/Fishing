@@ -216,7 +216,7 @@ export const BEACH_PROFILES: Record<string, BeachProfile> = {
     parkingInformation: { en: 'Free parking near southern beach access roads.', he: 'חניה חינם ליד כבישי הגישה לחוף הדרומי.' },
     localTips: {
       en: 'Leerfish possible in surf during warm months. Less crowded — good for long casting practice.',
-      he: 'ליציה אפשרית בגלים בחודשים חמים. פחות עמוס — טוב לתרגול הטלות ארוכות.',
+      he: 'אריאן אפשרי בגלים בחודשים חמים. פחות עמוס — טוב לתרגול הטלות ארוכות.',
     },
   },
 
@@ -243,7 +243,7 @@ export const BEACH_PROFILES: Record<string, BeachProfile> = {
     },
     localTips: {
       en: 'Famous for leerfish and sea bass in spring-autumn. Strong onshore wind makes casting difficult — best with NW or light wind.',
-      he: 'מפורסם בליציה ולוקוס באביב-סתיו. רוח קדמית חזקה מקשה על הטלה — הכי טוב ברוח צפון-מערב או קלה.',
+      he: 'מפורסם באריאן ולברק באביב-סתיו. רוח קדמית חזקה מקשה על הטלה — הכי טוב ברוח צפון-מערב או קלה.',
     },
   },
 
@@ -349,7 +349,7 @@ export const BEACH_PROFILES: Record<string, BeachProfile> = {
     parkingInformation: { en: 'Nitzanim nature area parking — check reserve rules.', he: 'חניה באזור שמורת ניצנים — בדקו תקנות השמורה.' },
     localTips: {
       en: 'Less pressure from anglers than Palmachim. Leerfish and sea bass primary targets.',
-      he: 'פחות לחץ דייגים מפלמחים. ליציה ולוקוס הם מיני מטרה עיקריים.',
+      he: 'פחות לחץ דייגים מפלמחים. אריאן ולברק הם מיני מטרה עיקריים.',
     },
   },
 

@@ -188,7 +188,7 @@ export const DEMO_SPECIES: SpeciesSummary[] = [
   { id: 'sp-12', commonName: 'European Pilchard', scientificName: 'Sardina pilchardus', localizedNames: { en: 'European Pilchard', he: 'סרדין' }, habitat: 'Pelagic schools', environmentTypes: ['pier', 'boat'], conservationStatus: 'least_concern' },
   { id: 'sp-13', commonName: 'Red Mullet', scientificName: 'Mullus surmuletus', localizedNames: { en: 'Red Mullet', he: 'ברבוניה' }, habitat: 'Sandy and muddy bottoms', environmentTypes: ['shore'], conservationStatus: 'least_concern' },
   { id: 'sp-14', commonName: 'White Seabream', scientificName: 'Diplodus sargus', localizedNames: { en: 'White Seabream', he: 'סרגוס' }, habitat: 'Rocky and sandy areas', environmentTypes: ['shore', 'rocks'], conservationStatus: 'least_concern' },
-  { id: 'sp-15', commonName: 'Leerfish', scientificName: 'Lichia amia', localizedNames: { en: 'Leerfish', he: 'ליציה' }, habitat: 'Sandy beaches and surf zone', environmentTypes: ['shore'], conservationStatus: 'least_concern' },
+  { id: 'sp-15', commonName: 'Leerfish', scientificName: 'Lichia amia', localizedNames: { en: 'Leerfish (Arian)', he: 'אריאן' }, habitat: 'Sandy beaches and surf zone', environmentTypes: ['shore'], conservationStatus: 'least_concern' },
 ];
 
 export const DEMO_CONDITIONS: MarineConditions = {

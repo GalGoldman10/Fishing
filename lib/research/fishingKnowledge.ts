@@ -447,8 +447,8 @@ export const SPECIES_TACTICS: Record<string, SpeciesTactics> = {
   },
   leerfish: {
     key: 'leerfish',
-    pattern: /leerfish|garrick|ליציה/i,
-    name: { en: 'Leerfish (litzia)', he: 'ליציה' },
+    pattern: /leerfish|garrick|אריאן|אמית.?ארי/i,
+    name: { en: 'Leerfish (Arian)', he: 'אריאן' },
     bites: { en: 'live mullet, big poppers and stickbaits', he: 'בורי חי, פופרים גדולים וסטיקבייטים' },
     where: { en: 'the surf zone of long sandy beaches — they hunt in the white water', he: 'אזור הגלים של חופים חוליים ארוכים — הם צדים בתוך הקצף' },
     when: { en: 'spring to autumn, dawn and dusk', he: 'אביב עד סתיו, שחר ודמדומים' },
@@ -529,7 +529,7 @@ export function getSeasonalNotes(date: Date, language: Lang): string {
   }
   if (month >= 2 && month <= 4) {
     return isHe
-      ? 'עונה נוכחית (אביב): המים מתחממים והפעילות עולה — דניס מתעורר ליד סלעים, ליציה מתחילה להופיע בגלים, ובורי פעיל במרינות.'
+      ? 'עונה נוכחית (אביב): המים מתחממים והפעילות עולה — דניס מתעורר ליד סלעים, אריאן מתחיל להופיע בגלים, ובורי פעיל במרינות.'
       : 'Current season (spring): water is warming and activity rises — bream wake up near rocks, leerfish start showing in the surf, and mullet are active in marinas.';
   }
   if (month >= 5 && month <= 7) {
@@ -538,7 +538,7 @@ export function getSeasonalNotes(date: Date, language: Lang): string {
       : 'Current season (summer): daytime heat suppresses activity — fish early morning, dusk or night. Bream at night near rocks, mullet by day in marinas, and flat seas make rock platforms safely fishable.';
   }
   return isHe
-    ? 'עונה נוכחית (סתיו): העונה החזקה של השנה — ריצות גומבר, שיא הליציה בגלים, ולברק חוזר לחופים. אל תפספסו את השחר.'
+    ? 'עונה נוכחית (סתיו): העונה החזקה של השנה — ריצות גומבר, שיא האריאן בגלים, ולברק חוזר לחופים. אל תפספסו את השחר.'
     : 'Current season (autumn): the strongest season of the year — bluefish runs, peak leerfish in the surf, and sea bass returning to the beaches. Do not miss first light.';
 }
 

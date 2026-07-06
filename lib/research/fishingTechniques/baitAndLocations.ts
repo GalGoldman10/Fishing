@@ -61,7 +61,7 @@ export const BAIT_TECHNIQUE_TOPICS: TechniqueTopic[] = [
     questionClasses: ['technique', 'bait'],
     directAnswer: {
       en: 'Keep bait alive in aerated bucket; hook lightly so it swims — live shrimp at dawn in surf, live mullet on float for leerfish.',
-      he: 'שמרu פיתiון חי בדלי מאוורר; עגנו קל כדי שישחה — שרימפס חי בשחר בגלים, בורי חי במצוף לליציה.',
+      he: 'שמרו פיתיון חי בדלי מאוורר; עגנו קל כדי שישחה — שרימפס חי בשחר בגלים, בורי חי במצוף לאריאן.',
     },
     setup: { en: 'Circle or live-bait hooks, light drag, do not strike too hard — fish hooks themselves.', he: 'קרסים circle או live-bait, דראג קל, אל תכu חזק — דג ננעץ בעצmo.' },
   },

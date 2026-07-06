@@ -30,7 +30,7 @@ INSERT INTO species (id, common_name, scientific_name, localized_names, aliases,
   ('c0000000-0000-4000-8000-000000000012', 'European Pilchard', 'Sardina pilchardus', '{"en":"European Pilchard","he":"סרדין"}', ARRAY['sardine'], 'Pelagic schools', ARRAY['pier','boat'], 1, 50, 'least_concern'),
   ('c0000000-0000-4000-8000-000000000013', 'Red Mullet', 'Mullus surmuletus', '{"en":"Red Mullet","he":"ברבוניה"}', ARRAY['red mullet','barbunia'], 'Sandy bottoms', ARRAY['shore'], 5, 100, 'least_concern'),
   ('c0000000-0000-4000-8000-000000000014', 'White Seabream', 'Diplodus sargus', '{"en":"White Seabream","he":"סרגוס"}', ARRAY['seabream','sargos'], 'Rocky and sandy', ARRAY['shore','rocks'], 1, 20, 'least_concern'),
-  ('c0000000-0000-4000-8000-000000000015', 'Leerfish', 'Lichia amia', '{"en":"Leerfish","he":"ליציה"}', ARRAY['leerfish'], 'Surf zone sandy beaches', ARRAY['shore'], 1, 15, 'least_concern');
+  ('c0000000-0000-4000-8000-000000000015', 'Leerfish', 'Lichia amia', '{"en":"Leerfish (Arian)","he":"אריאן"}', ARRAY['leerfish','arian','amit-arian'], 'Surf zone sandy beaches', ARRAY['shore'], 1, 15, 'least_concern');
 
 INSERT INTO spot_species (spot_id, species_id, likelihood, seasonal_months, preferred_methods, preferred_baits, confidence_score, source_id) VALUES
   ('b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', 'high', ARRAY[3,4,5,6,7,8,9,10], ARRAY['surf_casting'], ARRAY['sardine','squid'], 0.3, 'a0000000-0000-4000-8000-000000000001'),
