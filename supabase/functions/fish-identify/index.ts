@@ -73,6 +73,8 @@ Deno.serve(async (req) => {
       imageBase64,
       mimeType,
       language,
+      region: body.region === 'mediterranean' ? 'mediterranean' : 'mediterranean_israel',
+      debug: body.debug === true,
     });
 
     return new Response(JSON.stringify(result), {

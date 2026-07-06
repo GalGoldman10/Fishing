@@ -59,6 +59,7 @@
     "test:watch": "jest --watch",
     "import:fish-guide": "node scripts/import-mediterranean-fish-guide.mjs",
     "import:parks-fish": "node scripts/import-parks-fish-families.mjs",
+    "export:fish-id-catalog": "node scripts/export-fish-id-catalog.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit"
   },

@@ -133,9 +133,19 @@ export const tripPlanInputSchema = z.object({
 export const fishMatchSchema = z.object({
   speciesId: z.string().optional(),
   name: z.string(),
+  nameHe: z.string().optional(),
+  nameEn: z.string().optional(),
   scientificName: z.string().optional(),
+  familyHe: z.string().optional(),
+  familyLatin: z.string().optional(),
   confidence: z.number().min(0).max(100),
   description: z.string(),
+  identificationNotes: z.string().optional(),
+  matchReason: z.string().optional(),
+  keyIdentifyingSigns: z.array(z.string()).optional(),
+  confusedWith: z
+    .array(z.object({ speciesId: z.string(), name: z.string() }))
+    .optional(),
   commonInIsrael: z.boolean().optional(),
   habitat: z.string(),
   bestBait: z.string(),
@@ -147,10 +157,18 @@ export type FishMatch = z.infer<typeof fishMatchSchema>;
 
 export const fishRecognitionResponseSchema = z.object({
   status: z.enum(['success', 'uncertain', 'no_fish', 'blurry', 'error']),
+  region: z.enum(['mediterranean_israel', 'mediterranean', 'global']).optional(),
   primaryMatch: fishMatchSchema.optional(),
   alternativeMatches: z.array(fishMatchSchema).optional(),
   uncertainMessage: z.string().optional(),
   errorMessage: z.string().optional(),
+  imageQuality: z
+    .object({
+      score: z.number(),
+      issues: z.array(z.string()),
+      recommendation: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type FishRecognitionResponse = z.infer<typeof fishRecognitionResponseSchema>;

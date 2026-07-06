@@ -45,7 +45,11 @@ export default function FishIdentifyHistoryScreen() {
         />
       </View>
       <View style={styles.resultWrap}>
-        <FishRecognitionResult result={entry.result} />
+        <FishRecognitionResult
+          result={entry.result}
+          imageUri={entry.imageUri}
+          language={entry.language}
+        />
       </View>
     </ScrollView>
   );

@@ -228,9 +228,13 @@ export default function FishIdentifyScreen() {
         </Card>
       )}
 
-      {phase === 'result' && result && (
+      {phase === 'result' && result && selectedImage && (
         <View style={styles.resultSection}>
-          <FishRecognitionResult result={result} />
+          <FishRecognitionResult
+            result={result}
+            imageUri={selectedImage.uri}
+            language={language}
+          />
           <Button title={t('identify.identifyAnother')} onPress={reset} variant="outline" />
         </View>
       )}
