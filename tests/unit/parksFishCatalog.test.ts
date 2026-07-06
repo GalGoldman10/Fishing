@@ -21,9 +21,10 @@ describe('parksFishCatalog', () => {
 });
 
 describe('unified species catalog', () => {
-  it('merges Parks data with the cooking guide without losing guide-only fish', () => {
+  it('merges Parks data with the cooking guide and enriches sparse entries', () => {
     expect(UNIFIED_SPECIES.length).toBeGreaterThan(PARKS_FISH_CATALOG.length);
-    expect(DEMO_SPECIES.length).toBe(UNIFIED_SPECIES.length);
+    expect(DEMO_SPECIES.length).toBeLessThanOrEqual(UNIFIED_SPECIES.length);
+    expect(DEMO_SPECIES.length).toBeGreaterThan(PARKS_FISH_CATALOG.length);
   });
 
   it('maps legacy beach species ids to Parks catalog entries', () => {
@@ -35,6 +36,7 @@ describe('unified species catalog', () => {
     const grouper = getSpeciesProfile(resolveUnifiedSpeciesId('sp-8'));
     expect(grouper?.familyLatin).toBe('SERRANIDAE');
     expect(grouper?.aliases.some((name) => /לוקוס|דקר/.test(name))).toBe(true);
+    expect(grouper?.habitat.he.length).toBeGreaterThanOrEqual(20);
   });
 
   it('maps legacy ids through LEGACY_SPECIES_TO_PARKS', () => {

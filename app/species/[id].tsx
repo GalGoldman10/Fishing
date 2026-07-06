@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '@/components/common/ThemeProvider';
 import { LoadingState } from '@/components/common/StateViews';
 import { getSpeciesById } from '@/features/spots/spotService';
+import { isPlaceholderSpeciesText } from '@/lib/mock/speciesCatalog';
 import { resolveLang } from '@/lib/localization/localizedText';
 import { spacing } from '@/constants/theme';
 
@@ -58,6 +59,20 @@ export default function SpeciesDetailScreen() {
       ? `${content.familyHe} (${content.familyLatin})`
       : content?.familyHe;
 
+  const sections = [
+    { title: t('species.habitat'), body: habitat },
+    { title: t('species.identification'), body: identificationNotes },
+    { title: t('species.diet'), body: diet },
+    { title: t('species.sizeSeason'), body: sizeSeason },
+    { title: t('species.reproduction'), body: reproduction },
+    { title: t('species.cooking'), body: cookingMethods },
+  ];
+  const visibleSections = sections.filter(
+    (section) => section.body && !isPlaceholderSpeciesText(section.body),
+  );
+  const showDescription = description && !isPlaceholderSpeciesText(description);
+  const showHandling = handlingNotes && !isPlaceholderSpeciesText(handlingNotes);
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>{name}</Text>
@@ -74,16 +89,18 @@ export default function SpeciesDetailScreen() {
           {t('species.aliases')}: {aliases.join(', ')}
         </Text>
       )}
-      {description && (
+      {showDescription && (
         <Text style={{ color: colors.textSecondary, marginTop: spacing.md, lineHeight: 22 }}>{description}</Text>
       )}
-      <Section title={t('species.habitat')} body={habitat} colors={colors} />
-      <Section title={t('species.identification')} body={identificationNotes} colors={colors} />
-      <Section title={t('species.diet')} body={diet} colors={colors} />
-      <Section title={t('species.sizeSeason')} body={sizeSeason} colors={colors} />
-      <Section title={t('species.reproduction')} body={reproduction} colors={colors} />
-      <Section title={t('species.cooking')} body={cookingMethods} colors={colors} />
-      {handlingNotes && (
+      {visibleSections.map((section) => (
+        <Section key={section.title} title={section.title} body={section.body} colors={colors} />
+      ))}
+      {visibleSections.length === 0 && !showDescription && (
+        <Text style={{ color: colors.textMuted, marginTop: spacing.lg, lineHeight: 22 }}>
+          {t('species.limitedInfo')}
+        </Text>
+      )}
+      {showHandling && (
         <Text style={{ color: colors.warning, marginTop: spacing.md, lineHeight: 22 }}>{handlingNotes}</Text>
       )}
       {species.conservationStatus === 'vulnerable' && (

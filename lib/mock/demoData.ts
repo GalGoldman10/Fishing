@@ -1,7 +1,7 @@
 import { FishingSpotDetails, FishingSpotSummary, SpeciesDetails, SpeciesSummary, MarineConditions } from '@/types/fishing';
 import { getBeachProfile } from '@/lib/mock/beachProfiles';
 import { getSpeciesProfile } from '@/lib/mock/speciesProfiles';
-import { DEMO_SPECIES, resolveUnifiedSpeciesId } from '@/lib/mock/speciesCatalog';
+import { DEMO_SPECIES, resolveUnifiedSpeciesId, UNIFIED_SPECIES_BY_ID, unifiedToSpeciesSummary } from '@/lib/mock/speciesCatalog';
 
 // Coordinates were audited on 2026-07-03: several pins previously used
 // city-center positions instead of the actual shoreline fishing access point.
@@ -316,13 +316,19 @@ export function getDemoSpotDetails(id: string): FishingSpotDetails | null {
 
 export function getDemoSpeciesDetails(id: string): SpeciesDetails | null {
   const resolvedId = resolveUnifiedSpeciesId(id);
+  const profile = getSpeciesProfile(id) ?? getSpeciesProfile(resolvedId);
+  if (!profile) return null;
+
+  const unifiedEntry = UNIFIED_SPECIES_BY_ID[id] ?? UNIFIED_SPECIES_BY_ID[resolvedId];
   const species =
     DEMO_SPECIES.find((s) => s.id === id) ??
-    DEMO_SPECIES.find((s) => s.id === resolvedId);
+    DEMO_SPECIES.find((s) => s.id === resolvedId) ??
+    (unifiedEntry ? unifiedToSpeciesSummary(unifiedEntry) : null);
   if (!species) return null;
-  const profile = getSpeciesProfile(id) ?? getSpeciesProfile(resolvedId);
+
   return {
     ...species,
+    scientificName: species.scientificName ?? unifiedEntry?.scientificName,
     habitat: profile?.habitat.en ?? species.habitat,
     aliases: profile?.aliases ?? [species.commonName],
     description: profile?.description.en ?? species.commonName,

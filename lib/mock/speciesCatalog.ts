@@ -13,7 +13,16 @@ import {
   PARKS_FISH_BY_ID,
   type ParksFishSpecies,
 } from '@/lib/mock/parksFishCatalog';
+import {
+  enrichSpeciesFields,
+  isPlaceholderSpeciesText,
+  PARKS_ID_TO_GUIDE_OVERRIDE,
+  profileHasSubstantiveContent,
+  resolveScientificName,
+} from '@/lib/mock/speciesEnrichment';
 import type { SpeciesSummary } from '@/types/fishing';
+
+export { isPlaceholderSpeciesText } from '@/lib/mock/speciesEnrichment';
 
 export interface SpeciesProfile {
   id: string;
@@ -49,33 +58,59 @@ function normalizeName(name: string): string {
   return name.trim().replace(/[''"׳]/g, '').toLowerCase();
 }
 
-function allGuideNames(entry: MediterraneanFishGuideEntry): string[] {
-  return [entry.hebrewName, ...entry.aliases].map(normalizeName);
-}
-
-function allParksNames(entry: ParksFishSpecies): string[] {
-  return [entry.officialNameHe, ...entry.colloquialNames].map(normalizeName);
+function namesOverlap(a: string, b: string): boolean {
+  const na = normalizeName(a);
+  const nb = normalizeName(b);
+  if (na === nb) return true;
+  if (na.length >= 3 && nb.includes(na)) return true;
+  if (nb.length >= 3 && na.includes(nb)) return true;
+  const stemA = na.split(/\s+/)[0];
+  const stemB = nb.split(/\s+/)[0];
+  if (stemA.length >= 4 && stemA === stemB) return true;
+  return false;
 }
 
 function guideMatchesParks(guide: MediterraneanFishGuideEntry, parks: ParksFishSpecies): boolean {
-  const parkNames = new Set(allParksNames(parks));
-  return allGuideNames(guide).some((name) => parkNames.has(name));
+  const parkNames = [parks.officialNameHe, ...parks.colloquialNames];
+  const guideNames = [guide.hebrewName, ...guide.aliases];
+  return guideNames.some((guideName) => parkNames.some((parkName) => namesOverlap(guideName, parkName)));
 }
 
 function findGuideForParks(parks: ParksFishSpecies): MediterraneanFishGuideEntry | undefined {
+  const overrideGuideId = PARKS_ID_TO_GUIDE_OVERRIDE[parks.id];
+  const parkNames = [parks.officialNameHe, ...parks.colloquialNames];
+
+  const exactMatch = MEDITERRANEAN_FISH_GUIDE.find((guide) =>
+    parkNames.some((parkName) => normalizeName(guide.hebrewName) === normalizeName(parkName)),
+  );
+  if (exactMatch) return exactMatch;
+
+  if (overrideGuideId) {
+    const overrideGuide = MEDITERRANEAN_FISH_BY_ID[overrideGuideId];
+    if (overrideGuide) return overrideGuide;
+  }
+
   return MEDITERRANEAN_FISH_GUIDE.find((guide) => guideMatchesParks(guide, parks));
 }
 
-function isMissingHe(text: string | undefined): boolean {
-  if (!text) return true;
-  const t = text.trim();
-  return !t || t.startsWith('לא צוין') || t.startsWith('העמוד מציין');
+function isGuideRedundant(guide: MediterraneanFishGuideEntry): boolean {
+  return PARKS_FISH_CATALOG.some((parks) => guideMatchesParks(guide, parks));
 }
 
-function bilingualHe(text: string, enFallback: string): { en: string; he: string } {
-  const he = text.trim() || 'לא צוין במקור.';
-  const en = isMissingHe(text) ? enFallback : text;
-  return { en, he };
+function pickHe(primary: string | undefined, fallback: string | undefined, defaultText: string): string {
+  if (primary && !isPlaceholderSpeciesText(primary)) return primary;
+  if (fallback && !isPlaceholderSpeciesText(fallback)) return fallback;
+  return defaultText;
+}
+
+function pickEn(primary: string | undefined, fallback: string | undefined, defaultText: string): string {
+  if (primary && !isPlaceholderSpeciesText(primary)) return primary;
+  if (fallback && !isPlaceholderSpeciesText(fallback)) return fallback;
+  return defaultText;
+}
+
+function bilingualField(he: string, en: string): { en: string; he: string } {
+  return { he: he.trim() || 'לא צוין במקור.', en: en.trim() || 'Not specified in source.' };
 }
 
 function buildUnifiedList(): UnifiedSpeciesEntry[] {
@@ -86,7 +121,7 @@ function buildUnifiedList(): UnifiedSpeciesEntry[] {
     const guide = findGuideForParks(parks);
     if (guide) matchedGuideIds.add(guide.id);
     const colloquial = parks.colloquialNames[0];
-    unified.push({
+    const entry: UnifiedSpeciesEntry = {
       id: parks.id,
       parks,
       guide,
@@ -96,18 +131,23 @@ function buildUnifiedList(): UnifiedSpeciesEntry[] {
       familyHe: parks.familyHe,
       familyLatin: parks.familyLatin,
       protected: parks.protected,
-    });
+    };
+    entry.scientificName = resolveScientificName(entry);
+    unified.push(entry);
   }
 
   for (const guide of MEDITERRANEAN_FISH_GUIDE) {
     if (matchedGuideIds.has(guide.id)) continue;
-    unified.push({
+    if (isGuideRedundant(guide)) continue;
+    const entry: UnifiedSpeciesEntry = {
       id: guide.id,
       guide,
       primaryNameHe: guide.hebrewName,
       primaryNameEn: guide.englishName,
       protected: /לוקוס|דקר|מוגן/i.test(`${guide.hebrewName} ${guide.description.he}`),
-    });
+    };
+    entry.scientificName = resolveScientificName(entry);
+    unified.push(entry);
   }
 
   return unified;
@@ -180,14 +220,87 @@ function inferEnvironmentTypes(habitatHe: string): SpeciesSummary['environmentTy
   return [...types];
 }
 
+export function unifiedToSpeciesProfile(entry: UnifiedSpeciesEntry, id = entry.id): SpeciesProfile {
+  const parks = entry.parks;
+  const guide = entry.guide;
+  const enrichment = enrichSpeciesFields(entry);
+
+  let descriptionHe = pickHe(parks?.details, guide?.description.he, entry.primaryNameHe);
+  let descriptionEn = pickEn(undefined, guide?.description.en, entry.primaryNameEn);
+  let habitatHe = pickHe(parks?.habitat, guide?.habitat.he, 'לא צוין.');
+  let habitatEn = pickEn(undefined, guide?.habitat.en, 'Habitat not specified.');
+  let dietHe = pickHe(parks?.diet, guide?.diet.he, 'לא צוין.');
+  let dietEn = pickEn(undefined, guide?.diet.en, 'Diet not specified.');
+  let sizeHe = pickHe(parks?.size, guide?.sizeSeason.he, 'לא צוין.');
+  let sizeEn = pickEn(undefined, guide?.sizeSeason.en, 'Size/season not specified.');
+  const reproductionHe = pickHe(parks?.reproduction, undefined, 'לא צוין במקור.');
+  const reproductionEn = pickEn(undefined, undefined, 'Reproduction not specified.');
+  let handlingHe = pickHe(guide?.handlingNotes.he, parks?.protected ? 'מין מוגן — בדקו תקנות לפני שמירה.' : undefined, 'לא צוין.');
+  let handlingEn = pickEn(undefined, guide?.handlingNotes.en, 'Handling notes not specified.');
+  let cookingHe = pickHe(guide?.cookingMethods.he, undefined, 'לא צוין במדריך הבישול.');
+  let cookingEn = pickEn(undefined, guide?.cookingMethods.en, 'Preparation methods not specified.');
+  let identificationHe = pickHe(parks?.details, guide?.identificationNotes.he, descriptionHe);
+  let identificationEn = pickEn(undefined, guide?.identificationNotes.en, descriptionEn);
+
+  descriptionHe = pickHe(enrichment.descriptionHe, descriptionHe, entry.primaryNameHe);
+  descriptionEn = pickEn(enrichment.descriptionEn, descriptionEn, entry.primaryNameEn);
+  habitatHe = pickHe(enrichment.habitatHe, habitatHe, 'לא צוין.');
+  habitatEn = pickEn(enrichment.habitatEn, habitatEn, 'Habitat not specified.');
+  dietHe = pickHe(enrichment.dietHe, dietHe, 'לא צוין.');
+  dietEn = pickEn(enrichment.dietEn, dietEn, 'Diet not specified.');
+  sizeHe = pickHe(enrichment.sizeHe, sizeHe, 'לא צוין.');
+  sizeEn = pickEn(enrichment.sizeEn, sizeEn, 'Size/season not specified.');
+  handlingHe = pickHe(enrichment.handlingHe, handlingHe, 'לא צוין.');
+  handlingEn = pickEn(enrichment.handlingEn, handlingEn, 'Handling notes not specified.');
+  identificationHe = pickHe(enrichment.identificationHe, identificationHe, descriptionHe);
+  identificationEn = pickEn(enrichment.identificationEn, identificationEn, descriptionEn);
+
+  const aliases = [
+    entry.primaryNameHe,
+    parks?.officialNameHe,
+    ...(parks?.colloquialNames ?? []),
+    ...(guide?.aliases ?? []),
+  ]
+    .filter((name): name is string => Boolean(name))
+    .filter((name, index, arr) => arr.indexOf(name) === index);
+
+  const infoStatus =
+    parks && guide
+      ? 'מקור משולב — רשות הטבע והגנים + מדריך בישול'
+      : parks
+        ? 'מקור רשמי — רשות הטבע והגנים'
+        : enrichment.descriptionHe
+          ? 'מדריך דייג מקומי'
+          : (guide?.infoStatus ?? 'מדריך בישול');
+
+  return {
+    id,
+    description: bilingualField(descriptionHe, descriptionEn),
+    habitat: bilingualField(habitatHe, habitatEn),
+    identificationNotes: bilingualField(identificationHe, identificationEn),
+    handlingNotes: bilingualField(handlingHe, handlingEn),
+    consumptionWarning: bilingualField(cookingHe, cookingEn),
+    aliases,
+    diet: bilingualField(dietHe, dietEn),
+    sizeSeason: bilingualField(sizeHe, sizeEn),
+    cookingMethods: bilingualField(cookingHe, cookingEn),
+    reproduction: bilingualField(reproductionHe, reproductionEn),
+    familyHe: parks?.familyHe,
+    familyLatin: parks?.familyLatin,
+    sourceUrl: parks?.sourceUrl ?? guide?.sourceUrl ?? '',
+    infoStatus,
+  };
+}
+
 export function unifiedToSpeciesSummary(entry: UnifiedSpeciesEntry): SpeciesSummary {
-  const habitatHe = entry.parks?.habitat ?? entry.guide?.habitat.he ?? '';
+  const profile = unifiedToSpeciesProfile(entry);
+  const habitatHe = profile.habitat.he;
   return {
     id: entry.id,
     commonName: entry.primaryNameEn,
-    scientificName: entry.scientificName,
+    scientificName: resolveScientificName(entry),
     localizedNames: { en: entry.primaryNameEn, he: entry.primaryNameHe },
-    habitat: habitatHe,
+    habitat: isPlaceholderSpeciesText(habitatHe) ? undefined : habitatHe,
     familyHe: entry.familyHe,
     familyLatin: entry.familyLatin,
     environmentTypes: inferEnvironmentTypes(habitatHe),
@@ -195,46 +308,16 @@ export function unifiedToSpeciesSummary(entry: UnifiedSpeciesEntry): SpeciesSumm
   };
 }
 
-export function unifiedToSpeciesProfile(entry: UnifiedSpeciesEntry, id = entry.id): SpeciesProfile {
-  const parks = entry.parks;
-  const guide = entry.guide;
-
-  const descriptionHe = parks?.details ?? guide?.description.he ?? entry.primaryNameHe;
-  const habitatHe = parks?.habitat ?? guide?.habitat.he ?? 'לא צוין.';
-  const dietHe = parks?.diet ?? guide?.diet.he ?? 'לא צוין.';
-  const sizeHe = parks?.size ?? guide?.sizeSeason.he ?? 'לא צוין.';
-  const reproductionHe = parks?.reproduction ?? 'לא צוין במקור.';
-  const handlingHe = guide?.handlingNotes.he ?? (parks?.protected ? 'מין מוגן — בדקו תקנות לפני שמירה.' : 'לא צוין.');
-  const cookingHe = guide?.cookingMethods.he ?? 'לא צוין במדריך הבישול.';
-
-  const aliases = [
-    entry.primaryNameHe,
-    parks?.officialNameHe,
-    ...(parks?.colloquialNames ?? []),
-    ...(guide?.aliases ?? []),
-  ].filter((name): name is string => Boolean(name))
-    .filter((name, index, arr) => arr.indexOf(name) === index);
-
-  return {
-    id,
-    description: bilingualHe(descriptionHe, 'See Hebrew species details.'),
-    habitat: bilingualHe(habitatHe, 'Habitat not specified.'),
-    identificationNotes: bilingualHe(descriptionHe, 'Identification details not specified.'),
-    handlingNotes: bilingualHe(handlingHe, 'Handling notes not specified.'),
-    consumptionWarning: bilingualHe(cookingHe, 'Preparation methods not specified.'),
-    aliases,
-    diet: bilingualHe(dietHe, 'Diet not specified.'),
-    sizeSeason: bilingualHe(sizeHe, 'Size/season not specified.'),
-    cookingMethods: bilingualHe(cookingHe, 'Preparation methods not specified.'),
-    reproduction: bilingualHe(reproductionHe, 'Reproduction not specified.'),
-    familyHe: parks?.familyHe,
-    familyLatin: parks?.familyLatin,
-    sourceUrl: parks?.sourceUrl ?? guide?.sourceUrl ?? '',
-    infoStatus: guide?.infoStatus ?? (parks ? 'מקור רשמי — רשות הטבע והגנים' : 'מדריך בישול'),
-  };
-}
-
-export const DEMO_SPECIES: SpeciesSummary[] = UNIFIED_SPECIES.map(unifiedToSpeciesSummary);
+export const DEMO_SPECIES: SpeciesSummary[] = UNIFIED_SPECIES.filter((entry) => {
+  const profile = unifiedToSpeciesProfile(entry);
+  return profileHasSubstantiveContent({
+    descriptionHe: profile.description.he,
+    habitatHe: profile.habitat.he,
+    dietHe: profile.diet.he,
+    reproductionHe: profile.reproduction.he,
+    cookingHe: profile.cookingMethods.he,
+  });
+}).map(unifiedToSpeciesSummary);
 
 export function buildSpeciesProfilesRecord(): Record<string, SpeciesProfile> {
   const profiles: Record<string, SpeciesProfile> = {};

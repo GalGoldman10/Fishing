@@ -177,7 +177,8 @@
     "methods": "Fishing Methods",
     "baits": "Baits",
     "lures": "Lures",
-    "protected": "Protected species warning"
+    "protected": "Protected species warning",
+    "limitedInfo": "Detailed information for this species is not in the guide yet. Try another name or ask in chat about fishing tactics."
   },
   "identify": {
     "title": "Fish Recognition",
