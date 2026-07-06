@@ -3,6 +3,8 @@ import type { FishRecognitionResponse } from '@/lib/validation/schemas';
 export interface FishRecognitionHistoryEntry {
   id: string;
   imageUri: string;
+  imageWidth?: number;
+  imageHeight?: number;
   identifiedAt: string;
   language: 'en' | 'he';
   result: FishRecognitionResponse;

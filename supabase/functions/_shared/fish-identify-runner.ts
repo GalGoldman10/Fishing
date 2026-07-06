@@ -56,7 +56,8 @@ Rules:
 - If confidence for top match is under 65%: status "uncertain" with 2-3 alternatives
 - Be practical for Israeli Mediterranean shore anglers — mention breakwaters, marinas, sandy beaches, rocky shores
 - Mention protected species (e.g. dusky grouper/lokus) when relevant
-- Never invent species not plausible for the Mediterranean
+- If the photo is portrait/vertical or the fish is held with a gripper tool, still identify from visible markings and body shape
+- Partial fish in frame is OK if key features are visible
 - All text fields must be in the requested response language`;
 
 export async function runFishIdentify(request: FishIdentifyRequest): Promise<FishIdentifyResult> {
@@ -83,7 +84,7 @@ export async function runFishIdentify(request: FishIdentifyRequest): Promise<Fis
           role: 'user',
           content: [
             { type: 'text', text: 'Identify this fish for a shore angler in Israel.' },
-            { type: 'image_url', image_url: { url: dataUrl, detail: 'low' } },
+            { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } },
           ],
         },
       ],

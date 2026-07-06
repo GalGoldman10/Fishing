@@ -15,10 +15,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/components/common/ThemeProvider';
 import { Button, Card } from '@/components/common/Button';
-import { ErrorState } from '@/components/common/StateViews';
+import { ErrorState, LoadingState } from '@/components/common/StateViews';
 import { FishRecognitionLoading } from '@/components/fishing/FishRecognitionLoading';
+import { FishImagePreview } from '@/components/fishing/FishImagePreview';
 import { FishRecognitionResult } from '@/components/fishing/FishRecognitionResult';
 import { identifyFish } from '@/features/fishRecognition/fishRecognitionService';
+import { prepareImageForRecognition, type PreparedImage } from '@/features/fishRecognition/imageUtils';
 import {
   getRecognitionHistory,
   saveRecognitionHistory,
@@ -38,7 +40,8 @@ export default function FishIdentifyScreen() {
   const language = (i18n.language === 'he' ? 'he' : 'en') as 'en' | 'he';
 
   const [phase, setPhase] = useState<ScreenPhase>('pick');
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<PreparedImage | null>(null);
+  const [isPreparing, setIsPreparing] = useState(false);
   const [result, setResult] = useState<FishRecognitionResponse | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [history, setHistory] = useState<FishRecognitionHistoryEntry[]>([]);
@@ -70,19 +73,32 @@ export default function FishIdentifyScreen() {
     return true;
   };
 
+  const applyPickedAsset = async (asset: ImagePicker.ImagePickerAsset) => {
+    setIsPreparing(true);
+    setResult(null);
+    setErrorKey(null);
+    try {
+      const prepared = await prepareImageForRecognition(asset.uri, asset.width, asset.height);
+      setSelectedImage(prepared);
+      setPhase('preview');
+    } catch {
+      Alert.alert(t('common.error'), t('identify.prepareFailed'));
+    } finally {
+      setIsPreparing(false);
+    }
+  };
+
   const pickFromGallery = async () => {
     const ok = await requestGalleryPermission();
     if (!ok) return;
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: false,
-      quality: 0.75,
+      quality: 1,
+      exif: false,
     });
     if (!pickerResult.canceled && pickerResult.assets[0]) {
-      setImageUri(pickerResult.assets[0].uri);
-      setResult(null);
-      setErrorKey(null);
-      setPhase('preview');
+      await applyPickedAsset(pickerResult.assets[0]);
     }
   };
 
@@ -91,24 +107,33 @@ export default function FishIdentifyScreen() {
     if (!ok) return;
     const pickerResult = await ImagePicker.launchCameraAsync({
       allowsEditing: false,
-      quality: 0.75,
+      quality: 1,
+      exif: false,
     });
     if (!pickerResult.canceled && pickerResult.assets[0]) {
-      setImageUri(pickerResult.assets[0].uri);
-      setResult(null);
-      setErrorKey(null);
-      setPhase('preview');
+      await applyPickedAsset(pickerResult.assets[0]);
     }
   };
 
   const runIdentification = async () => {
-    if (!imageUri) return;
+    if (!selectedImage) return;
     setPhase('loading');
     setErrorKey(null);
     try {
-      const identification = await identifyFish({ imageUri, language });
+      const identification = await identifyFish({
+        imageUri: selectedImage.uri,
+        imageWidth: selectedImage.width,
+        imageHeight: selectedImage.height,
+        language,
+      });
       setResult(identification);
-      await saveRecognitionHistory({ imageUri, language, result: identification });
+      await saveRecognitionHistory({
+        imageUri: selectedImage.uri,
+        imageWidth: selectedImage.width,
+        imageHeight: selectedImage.height,
+        language,
+        result: identification,
+      });
       await loadHistory();
       setPhase('result');
     } catch (err) {
@@ -122,7 +147,7 @@ export default function FishIdentifyScreen() {
   };
 
   const reset = () => {
-    setImageUri(null);
+    setSelectedImage(null);
     setResult(null);
     setErrorKey(null);
     setPhase('pick');
@@ -178,9 +203,15 @@ export default function FishIdentifyScreen() {
         </View>
       )}
 
-      {(phase === 'preview' || phase === 'loading' || phase === 'result' || phase === 'error') && imageUri && (
+      {isPreparing && <LoadingState message={t('identify.preparingImage')} />}
+
+      {(phase === 'preview' || phase === 'loading' || phase === 'result' || phase === 'error') && selectedImage && (
         <Card style={styles.previewCard}>
-          <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
+          <FishImagePreview
+            uri={selectedImage.uri}
+            width={selectedImage.width}
+            height={selectedImage.height}
+          />
           {phase === 'preview' && (
             <View style={styles.previewActions}>
               <Button title={t('identify.identifyButton')} onPress={runIdentification} />
@@ -217,7 +248,11 @@ export default function FishIdentifyScreen() {
                 onPress={() => openHistoryEntry(entry)}
                 style={[styles.historyItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
               >
-                <Image source={{ uri: entry.imageUri }} style={styles.historyThumb} />
+                <Image
+                  source={{ uri: entry.imageUri }}
+                  style={styles.historyThumb}
+                  resizeMode="cover"
+                />
                 <View style={styles.historyMeta}>
                   <Text style={[styles.historyName, { color: colors.text }]} numberOfLines={1}>
                     {name}
@@ -270,7 +305,6 @@ const styles = StyleSheet.create({
   actionTitle: { fontSize: 18, fontWeight: '600' },
   actionDesc: { fontSize: 14, lineHeight: 20 },
   previewCard: { marginHorizontal: spacing.md, overflow: 'hidden', padding: 0 },
-  previewImage: { width: '100%', height: 260 },
   previewActions: { padding: spacing.md, gap: spacing.sm },
   errorWrap: { padding: spacing.md, gap: spacing.sm },
   resultSection: { paddingHorizontal: spacing.md, gap: spacing.md },

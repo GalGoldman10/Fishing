@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { View, Image, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/components/common/ThemeProvider';
 import { LoadingState } from '@/components/common/StateViews';
 import { FishRecognitionResult } from '@/components/fishing/FishRecognitionResult';
+import { FishImagePreview } from '@/components/fishing/FishImagePreview';
 import {
   getRecognitionById,
 } from '@/features/fishRecognition/historyService';
@@ -35,7 +36,14 @@ export default function FishIdentifyHistoryScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
-      <Image source={{ uri: entry.imageUri }} style={styles.image} resizeMode="cover" />
+      <View style={styles.imageWrap}>
+        <FishImagePreview
+          uri={entry.imageUri}
+          width={entry.imageWidth}
+          height={entry.imageHeight}
+          horizontalPadding={spacing.md}
+        />
+      </View>
       <View style={styles.resultWrap}>
         <FishRecognitionResult result={entry.result} />
       </View>
@@ -46,6 +54,6 @@ export default function FishIdentifyHistoryScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingBottom: spacing.xxl },
-  image: { width: '100%', height: 240, borderRadius: borderRadius.lg, margin: spacing.md },
+  imageWrap: { marginHorizontal: spacing.md, marginTop: spacing.md, borderRadius: borderRadius.lg, overflow: 'hidden' },
   resultWrap: { paddingHorizontal: spacing.md },
 });

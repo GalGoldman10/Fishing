@@ -45,12 +45,16 @@ export async function getRecognitionById(id: string): Promise<FishRecognitionHis
 
 export async function saveRecognitionHistory(params: {
   imageUri: string;
+  imageWidth?: number;
+  imageHeight?: number;
   language: 'en' | 'he';
   result: FishRecognitionResponse;
 }): Promise<FishRecognitionHistoryEntry> {
   const entry: FishRecognitionHistoryEntry = {
     id: uuidv4(),
     imageUri: params.imageUri,
+    imageWidth: params.imageWidth,
+    imageHeight: params.imageHeight,
     identifiedAt: new Date().toISOString(),
     language: params.language,
     result: params.result,

@@ -4,12 +4,14 @@ import {
   fishRecognitionResponseSchema,
   type FishRecognitionResponse,
 } from '@/lib/validation/schemas';
-import { imageUriToBase64 } from '@/features/fishRecognition/imageUtils';
+import { imageUriToBase64, prepareImageForRecognition } from '@/features/fishRecognition/imageUtils';
 import { mockIdentifyFish } from '@/features/fishRecognition/mockFishRecognition';
 import { FishRecognitionError } from '@/features/fishRecognition/types';
 
 export interface IdentifyFishRequest {
   imageUri: string;
+  imageWidth?: number;
+  imageHeight?: number;
   language: 'en' | 'he';
 }
 
@@ -34,14 +36,20 @@ function throwForStatus(result: FishRecognitionResponse): void {
 }
 
 export async function identifyFish(request: IdentifyFishRequest): Promise<FishRecognitionResponse> {
+  const prepared = await prepareImageForRecognition(
+    request.imageUri,
+    request.imageWidth,
+    request.imageHeight,
+  );
+
   if (!isAiChatAvailable()) {
-    const result = await mockIdentifyFish(request.imageUri, request.language);
+    const result = await mockIdentifyFish(prepared.uri, request.language);
     throwForStatus(result);
     return result;
   }
 
   try {
-    const { base64, mimeType } = await imageUriToBase64(request.imageUri);
+    const { base64, mimeType } = await imageUriToBase64(prepared.uri);
     const { data, error } = await supabase.functions.invoke('fish-identify', {
       body: {
         imageBase64: base64,
@@ -52,7 +60,7 @@ export async function identifyFish(request: IdentifyFishRequest): Promise<FishRe
 
     if (error) {
       console.warn('[fish-identify] edge error, falling back to mock:', error.message);
-      const fallback = await mockIdentifyFish(request.imageUri, request.language);
+      const fallback = await mockIdentifyFish(prepared.uri, request.language);
       throwForStatus(fallback);
       return fallback;
     }
@@ -69,7 +77,7 @@ export async function identifyFish(request: IdentifyFishRequest): Promise<FishRe
     }
 
     console.warn('[fish-identify] failed, using mock fallback:', err);
-    const fallback = await mockIdentifyFish(request.imageUri, request.language);
+    const fallback = await mockIdentifyFish(prepared.uri, request.language);
     throwForStatus(fallback);
     return fallback;
   }
