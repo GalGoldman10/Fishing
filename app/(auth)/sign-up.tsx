@@ -35,7 +35,13 @@ export default function SignUpScreen() {
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      await signUp(data.email, data.password, data.displayName);
+      const result = await signUp(data.email, data.password, data.displayName);
+      if (result.needsEmailConfirmation) {
+        Alert.alert(t('auth.confirmEmailTitle'), t('auth.confirmEmailMessage'), [
+          { text: t('common.close'), onPress: () => router.replace('/(auth)/sign-in') },
+        ]);
+        return;
+      }
       await saveProfile({ displayName: data.displayName });
       router.replace('/(tabs)');
     } catch {

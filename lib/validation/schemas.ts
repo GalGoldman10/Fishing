@@ -130,55 +130,6 @@ export const tripPlanInputSchema = z.object({
   notificationEnabled: z.boolean().default(false),
 });
 
-export const fishMatchSchema = z.object({
-  speciesId: z.string().optional(),
-  name: z.string(),
-  nameHe: z.string().optional(),
-  nameEn: z.string().optional(),
-  scientificName: z.string().optional(),
-  familyHe: z.string().optional(),
-  familyLatin: z.string().optional(),
-  confidence: z.number().min(0).max(100),
-  description: z.string(),
-  identificationNotes: z.string().optional(),
-  matchReason: z.string().optional(),
-  keyIdentifyingSigns: z.array(z.string()).optional(),
-  confusedWith: z
-    .array(z.object({ speciesId: z.string(), name: z.string() }))
-    .optional(),
-  commonInIsrael: z.boolean().optional(),
-  habitat: z.string(),
-  bestBait: z.string(),
-  techniques: z.string(),
-  safetyWarning: z.string().optional(),
-});
-
-export type FishMatch = z.infer<typeof fishMatchSchema>;
-
-export const fishRecognitionResponseSchema = z.object({
-  status: z.enum(['success', 'uncertain', 'no_fish', 'blurry', 'error']),
-  region: z.enum(['mediterranean_israel', 'mediterranean', 'global']).optional(),
-  primaryMatch: fishMatchSchema.optional(),
-  alternativeMatches: z.array(fishMatchSchema).optional(),
-  uncertainMessage: z.string().optional(),
-  errorMessage: z.string().optional(),
-  imageQuality: z
-    .object({
-      score: z.number(),
-      issues: z.array(z.string()),
-      recommendation: z.string().optional(),
-    })
-    .optional(),
-});
-
-export type FishRecognitionResponse = z.infer<typeof fishRecognitionResponseSchema>;
-
-export const fishIdentifyInputSchema = z.object({
-  imageBase64: z.string().min(100),
-  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']).default('image/jpeg'),
-  language: z.enum(['en', 'he']).default('en'),
-});
-
 export const catchLogInputSchema = z.object({
   spotId: z.string().uuid().optional(),
   speciesId: z.string().uuid().optional(),

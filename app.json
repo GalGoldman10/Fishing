@@ -14,8 +14,8 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "FishGuide needs your location to show nearby fishing spots and conditions.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "FishGuide uses location for trip planning and nearby spot discovery.",
-        "NSCameraUsageDescription": "FishGuide needs camera access to photograph fish for identification.",
-        "NSPhotoLibraryUsageDescription": "FishGuide needs access to your photos to identify fish."
+        "NSCameraUsageDescription": "FishGuide needs camera access to add photos to your profile and catch log.",
+        "NSPhotoLibraryUsageDescription": "FishGuide needs access to your photos for profile and catch log images."
       }
     },
     "android": {
@@ -66,8 +66,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "FishGuide needs access to your photos to identify fish.",
-          "cameraPermission": "FishGuide needs camera access to photograph fish for identification."
+          "photosPermission": "FishGuide needs access to your photos for profile and catch log images.",
+          "cameraPermission": "FishGuide needs camera access to add photos to your profile and catch log."
         }
       ]
     ],

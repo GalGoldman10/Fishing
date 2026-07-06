@@ -1,6 +1,40 @@
 import { supabase } from '@/lib/api/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { isMockMode } from '@/lib/config/env';
+import { hydrateProfile, clearProfile } from '@/features/profile/profileService';
+import { useFavoritesStore } from '@/features/spots/favoritesService';
+import { useLanguageStore } from '@/stores/languageStore';
+
+export interface SignUpResult {
+  needsEmailConfirmation: boolean;
+}
+
+export async function syncUserDataAfterAuth(): Promise<void> {
+  await hydrateProfile();
+  await useFavoritesStore.getState().loadFavorites();
+  await useLanguageStore.getState().hydrate();
+}
+
+export function setupAuthStateListener(): () => void {
+  if (isMockMode()) return () => {};
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(async (event, session) => {
+    useAuthStore.getState().setSession(session);
+
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      await syncUserDataAfterAuth();
+    }
+
+    if (event === 'SIGNED_OUT') {
+      await clearProfile();
+      await useFavoritesStore.getState().loadFavorites();
+    }
+  });
+
+  return () => subscription.unsubscribe();
+}
 
 export async function restoreSession(): Promise<void> {
   const { setSession, setLoading } = useAuthStore.getState();
@@ -11,7 +45,9 @@ export async function restoreSession(): Promise<void> {
     return;
   }
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   setSession(session);
 }
 
@@ -24,12 +60,17 @@ export async function signIn(email: string, password: string): Promise<void> {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
   useAuthStore.getState().setSession(data.session);
+  await syncUserDataAfterAuth();
 }
 
-export async function signUp(email: string, password: string, displayName: string): Promise<void> {
+export async function signUp(
+  email: string,
+  password: string,
+  displayName: string,
+): Promise<SignUpResult> {
   if (isMockMode()) {
     useAuthStore.getState().setGuest(true);
-    return;
+    return { needsEmailConfirmation: false };
   }
 
   const { data, error } = await supabase.auth.signUp({
@@ -38,7 +79,15 @@ export async function signUp(email: string, password: string, displayName: strin
     options: { data: { display_name: displayName } },
   });
   if (error) throw error;
-  useAuthStore.getState().setSession(data.session);
+
+  if (data.session) {
+    useAuthStore.getState().setSession(data.session);
+    await syncUserDataAfterAuth();
+    return { needsEmailConfirmation: false };
+  }
+
+  useAuthStore.getState().setLoading(false);
+  return { needsEmailConfirmation: true };
 }
 
 export async function signOut(): Promise<void> {
@@ -46,6 +95,8 @@ export async function signOut(): Promise<void> {
     await supabase.auth.signOut();
   }
   useAuthStore.getState().signOut();
+  await clearProfile();
+  await useFavoritesStore.getState().loadFavorites();
 }
 
 export async function deleteAccount(): Promise<void> {
@@ -57,4 +108,5 @@ export async function deleteAccount(): Promise<void> {
   const { error } = await supabase.functions.invoke('account-delete');
   if (error) throw error;
   useAuthStore.getState().signOut();
+  await clearProfile();
 }

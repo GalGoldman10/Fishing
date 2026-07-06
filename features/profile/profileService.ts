@@ -3,7 +3,9 @@ import { Platform } from 'react-native';
 import { isMockMode } from '@/lib/config/env';
 import { supabase } from '@/lib/api/supabase';
 import {
+  DEFAULT_FISHING_SETUP,
   DEFAULT_PROFILE,
+  FishingSetup,
   UserProfileData,
   useProfileStore,
 } from '@/stores/profileStore';
@@ -34,18 +36,49 @@ async function writeStoredProfile(profile: UserProfileData): Promise<void> {
   await SecureStore.setItemAsync(PROFILE_STORAGE_KEY, raw);
 }
 
+function parseExperienceLevel(value: string | null | undefined): UserProfileData['experienceLevel'] {
+  if (value === 'intermediate' || value === 'advanced') return value;
+  return 'beginner';
+}
+
+function parseFishingSetup(raw: unknown): FishingSetup {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_FISHING_SETUP };
+  const row = raw as Record<string, unknown>;
+  return {
+    rod: typeof row.rod === 'string' ? row.rod : '',
+    reel: typeof row.reel === 'string' ? row.reel : '',
+    mainLine: typeof row.mainLine === 'string' ? row.mainLine : '',
+    leader: typeof row.leader === 'string' ? row.leader : '',
+    hooks: typeof row.hooks === 'string' ? row.hooks : '',
+    bait: typeof row.bait === 'string' ? row.bait : '',
+    notes: typeof row.notes === 'string' ? row.notes : '',
+  };
+}
+
 function toStoreData(row: {
   display_name?: string | null;
   avatar_url?: string | null;
   experience_level?: string | null;
+  favorite_spot_id?: string | null;
+  fishing_setup?: unknown;
 }): Partial<UserProfileData> {
   return {
     displayName: row.display_name ?? '',
     avatarUri: row.avatar_url ?? null,
-    experienceLevel:
-      row.experience_level === 'intermediate' || row.experience_level === 'advanced'
-        ? row.experience_level
-        : 'beginner',
+    experienceLevel: parseExperienceLevel(row.experience_level),
+    favoriteSpotId: row.favorite_spot_id ?? null,
+    fishingSetup: parseFishingSetup(row.fishing_setup),
+  };
+}
+
+function toProfileRow(profile: UserProfileData, userId: string) {
+  return {
+    id: userId,
+    display_name: profile.displayName || null,
+    avatar_url: profile.avatarUri,
+    experience_level: profile.experienceLevel,
+    favorite_spot_id: profile.favoriteSpotId,
+    fishing_setup: profile.fishingSetup,
   };
 }
 
@@ -60,10 +93,12 @@ export async function hydrateProfile(): Promise<void> {
     if (user) {
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
       if (data) {
-        useProfileStore.getState().hydrate({
+        const merged: UserProfileData = {
           ...base,
           ...toStoreData(data),
-        });
+        };
+        useProfileStore.getState().hydrate(merged);
+        await writeStoredProfile(merged);
         return;
       }
     }
@@ -92,14 +127,7 @@ export async function saveProfile(patch: Partial<UserProfileData>): Promise<void
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase
-    .from('profiles')
-    .update({
-      display_name: next.displayName || null,
-      avatar_url: next.avatarUri,
-      experience_level: next.experienceLevel,
-    })
-    .eq('id', user.id);
+  await supabase.from('profiles').upsert(toProfileRow(next, user.id), { onConflict: 'id' });
 }
 
 export async function clearProfile(): Promise<void> {

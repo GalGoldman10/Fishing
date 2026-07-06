@@ -37,6 +37,11 @@ async function writeLocalFavorites(ids: string[]): Promise<void> {
   await SecureStore.setItemAsync(FAVORITES_KEY, raw);
 }
 
+function parseFavoriteSpotIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((id): id is string => typeof id === 'string');
+}
+
 export const useFavoritesStore = create<FavoritesStore>((set, get) => ({
   favoriteIds: new Set(),
 
@@ -48,6 +53,7 @@ export const useFavoritesStore = create<FavoritesStore>((set, get) => ({
       set({ favoriteIds: new Set(ids) });
       return;
     }
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -56,8 +62,22 @@ export const useFavoritesStore = create<FavoritesStore>((set, get) => ({
       set({ favoriteIds: new Set(ids) });
       return;
     }
-    const { data } = await supabase.from('favorites').select('spot_id').eq('user_id', user.id);
-    set({ favoriteIds: new Set((data ?? []).map((f) => f.spot_id)) });
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('favorite_spot_ids')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const ids = parseFavoriteSpotIds(data?.favorite_spot_ids);
+    if (ids.length > 0) {
+      await writeLocalFavorites(ids);
+      set({ favoriteIds: new Set(ids) });
+      return;
+    }
+
+    const localIds = await readLocalFavorites();
+    set({ favoriteIds: new Set(localIds) });
   },
 
   toggleFavorite: async (spotId) => {
@@ -68,7 +88,8 @@ export const useFavoritesStore = create<FavoritesStore>((set, get) => ({
     else next.add(spotId);
     set({ favoriteIds: next });
 
-    await writeLocalFavorites([...next]);
+    const ids = [...next];
+    await writeLocalFavorites(ids);
 
     if (isMockMode()) return;
 
@@ -77,10 +98,8 @@ export const useFavoritesStore = create<FavoritesStore>((set, get) => ({
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    if (isFav) {
-      await supabase.from('favorites').delete().eq('user_id', user.id).eq('spot_id', spotId);
-    } else {
-      await supabase.from('favorites').insert([{ user_id: user.id, spot_id: spotId }]);
-    }
+    await supabase
+      .from('profiles')
+      .upsert({ id: user.id, favorite_spot_ids: ids }, { onConflict: 'id' });
   },
 }));

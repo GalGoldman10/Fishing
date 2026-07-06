@@ -60,7 +60,6 @@
     "quickActions": "Quick Actions",
     "findSpot": "Find a Spot",
     "chooseEquipment": "Choose Equipment",
-    "identifyFish": "Identify a Fish",
     "planTrip": "Plan a Trip",
     "aiSuggestions": [
       "What fish can I catch here?",
@@ -180,49 +179,6 @@
     "protected": "Protected species warning",
     "limitedInfo": "Detailed information for this species is not in the guide yet. Try another name or ask in chat about fishing tactics."
   },
-  "identify": {
-    "title": "Fish Recognition",
-    "subtitle": "Upload a fish photo — we compare it only to species in our verified guide database. We show confidence, alternatives, and say when we're not sure.",
-    "cardDesc": "Take a photo or upload from gallery to identify a fish",
-    "uploadGallery": "Upload from Gallery",
-    "uploadGalleryDesc": "Choose an existing photo of a fish from your device",
-    "takePhoto": "Take Photo",
-    "takePhotoDesc": "Use your camera to photograph a fish on the spot",
-    "preparingImage": "Preparing your photo…",
-    "prepareFailed": "Could not prepare this photo. Try another image.",
-    "chooseAnother": "Choose Another Photo",
-    "identifyAnother": "Identify Another Fish",
-    "analyzing": "Analyzing your photo…",
-    "analyzingHint": "Our fishing guide is examining markings, shape, and color patterns",
-    "habitat": "Habitat",
-    "bestBait": "Best Bait & Lures",
-    "techniques": "Fishing Technique",
-    "commonInIsrael": "Common in Israel / Mediterranean",
-    "uncommonInIsrael": "Less common locally",
-    "otherPossibilities": "Other possible matches",
-    "viewSpeciesGuide": "View in Species Guide",
-    "disclaimer": "Identification compares your photo only to fish in our guide database. Results may still be wrong — verify protected species and local rules before keeping a fish.",
-    "bestMatch": "Best match",
-    "keySigns": "Key identifying signs",
-    "howToIdentify": "How to identify",
-    "confusedWith": "Can be confused with",
-    "qualityWarning": "For better results, upload a clear side-view photo of the full fish in good lighting.",
-    "reportWrong": "Report wrong identification",
-    "correctNamePlaceholder": "Correct fish name (optional)",
-    "reportNotesPlaceholder": "Notes (optional)",
-    "reportThanks": "Thank you — your report was saved and will help improve identification.",
-    "historyTitle": "Recognition History",
-    "historyDetail": "Past Identification",
-    "historyNotFound": "Identification not found",
-    "galleryPermission": "Photo library permission is required to upload images.",
-    "cameraPermission": "Camera permission is required to take photos.",
-    "errors": {
-      "noFish": "No fish detected. Please upload a clearer photo.",
-      "blurry": "Image is too blurry. Try another photo.",
-      "network": "Could not connect. Check your internet and try again.",
-      "apiFailed": "Identification failed. Please try again."
-    }
-  },
   "trip": {
     "title": "Trip Planner",
     "selectLocation": "Select Location",
@@ -297,7 +253,9 @@
     "createAccountTitle": "Create your account",
     "signUpSubtitle": "Join FishGuide to save spots, track catches, and personalize advice.",
     "noAccount": "Don't have an account? Sign up",
-    "haveAccount": "Already have an account? Sign in"
+    "haveAccount": "Already have an account? Sign in",
+    "confirmEmailTitle": "Check your email",
+    "confirmEmailMessage": "We sent you a confirmation link. Open it, then sign in to sync your profile."
   },
   "errors": {
     "noInternet": "No internet connection.",

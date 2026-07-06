@@ -10,7 +10,7 @@ import { DirectionProvider } from '@/components/common/DirectionProvider';
 import { useTheme } from '@/components/common/ThemeProvider';
 import { useAuthStore } from '@/stores/authStore';
 import { useLanguageStore } from '@/stores/languageStore';
-import { restoreSession } from '@/features/auth/authService';
+import { restoreSession, setupAuthStateListener } from '@/features/auth/authService';
 import { hydrateProfile } from '@/features/profile/profileService';
 import { useFavoritesStore } from '@/features/spots/favoritesService';
 
@@ -42,8 +42,6 @@ function LocalizedStack() {
       <Stack.Screen name="catch/index" options={{ title: t('catch.title') }} />
       <Stack.Screen name="catch/new" options={{ title: t('catch.newCatch') }} />
       <Stack.Screen name="species/[id]" options={{ title: t('screens.speciesDetails') }} />
-      <Stack.Screen name="identify/index" options={{ title: t('identify.title') }} />
-      <Stack.Screen name="identify/[id]" options={{ title: t('identify.historyDetail') }} />
       <Stack.Screen name="profile/edit" options={{ title: t('profile.editProfile') }} />
       <Stack.Screen name="admin" options={{ headerShown: false }} />
     </Stack>
@@ -69,6 +67,11 @@ function RootNavigator() {
       await SplashScreen.hideAsync();
     })();
   }, [hydrateLanguage]);
+
+  useEffect(() => {
+    const unsubscribe = setupAuthStateListener();
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (!ready || isLoading || !languageHydrated) return;

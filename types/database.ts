@@ -18,6 +18,9 @@ export interface Database {
         experience_level: string;
         default_units: string;
         country_code: string | null;
+        favorite_spot_id: string | null;
+        favorite_spot_ids: Json;
+        fishing_setup: Json;
         created_at: string;
         updated_at: string;
       }, { id: string; display_name?: string | null }>;
