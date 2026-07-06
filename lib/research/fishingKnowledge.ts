@@ -524,7 +524,7 @@ export function getSeasonalNotes(date: Date, language: Lang): string {
 
   if (month === 11 || month <= 1) {
     return isHe
-      ? 'עונה נוכחית (חורף): פחות מינים פעילים, אבל לוקוס ים בשיא שלו בגלים, ומרמור מצוין ביום הרגוע הראשון אחרי סערה. התמקדו בחלונות רגועים בין החזיתות.'
+      ? 'עונה נוכחית (חורף): פחות מינים פעילים, אבל לברק בשיא שלו בגלים, ומרמור מצוין ביום הרגוע הראשון אחרי סערה. התמקדו בחלונות רגועים בין החזיתות.'
       : 'Current season (winter): fewer species are active, but sea bass peaks in the surf, and marmor fishing is excellent on the first calm day after a storm. Focus on calm windows between fronts.';
   }
   if (month >= 2 && month <= 4) {
@@ -538,7 +538,7 @@ export function getSeasonalNotes(date: Date, language: Lang): string {
       : 'Current season (summer): daytime heat suppresses activity — fish early morning, dusk or night. Bream at night near rocks, mullet by day in marinas, and flat seas make rock platforms safely fishable.';
   }
   return isHe
-    ? 'עונה נוכחית (סתיו): העונה החזקה של השנה — ריצות גומבר, שיא הליציה בגלים, ולוקוס ים חוזר לחופים. אל תפספסו את השחר.'
+    ? 'עונה נוכחית (סתיו): העונה החזקה של השנה — ריצות גומבר, שיא הליציה בגלים, ולברק חוזר לחופים. אל תפספסו את השחר.'
     : 'Current season (autumn): the strongest season of the year — bluefish runs, peak leerfish in the surf, and sea bass returning to the beaches. Do not miss first light.';
 }
 
