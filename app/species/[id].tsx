@@ -51,13 +51,23 @@ export default function SpeciesDetailScreen() {
   const identificationNotes = pickLocalized(lang, content?.identificationNotes, species.identificationNotes);
   const diet = pickLocalized(lang, content?.diet);
   const sizeSeason = pickLocalized(lang, content?.sizeSeason);
+  const reproduction = pickLocalized(lang, content?.reproduction);
   const aliases = content?.aliases?.filter((alias) => alias !== name);
+  const familyLine =
+    content?.familyHe && content?.familyLatin
+      ? `${content.familyHe} (${content.familyLatin})`
+      : content?.familyHe;
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>{name}</Text>
       {species.scientificName && (
         <Text style={[styles.scientific, { color: colors.textMuted }]}>{species.scientificName}</Text>
+      )}
+      {familyLine && (
+        <Text style={{ color: colors.textMuted, marginTop: spacing.xs }}>
+          {t('species.family')}: {familyLine}
+        </Text>
       )}
       {aliases && aliases.length > 0 && (
         <Text style={{ color: colors.textMuted, marginTop: spacing.xs }}>
@@ -71,6 +81,7 @@ export default function SpeciesDetailScreen() {
       <Section title={t('species.identification')} body={identificationNotes} colors={colors} />
       <Section title={t('species.diet')} body={diet} colors={colors} />
       <Section title={t('species.sizeSeason')} body={sizeSeason} colors={colors} />
+      <Section title={t('species.reproduction')} body={reproduction} colors={colors} />
       <Section title={t('species.cooking')} body={cookingMethods} colors={colors} />
       {handlingNotes && (
         <Text style={{ color: colors.warning, marginTop: spacing.md, lineHeight: 22 }}>{handlingNotes}</Text>

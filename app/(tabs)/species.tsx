@@ -84,6 +84,12 @@ function SpeciesCard({
   const localName = species.localizedNames?.[lang] ?? species.commonName;
   const habitat =
     getLocalizedSpeciesText(species.id, 'habitat', lang) ?? species.habitat;
+  const familyLabel =
+    lang === 'he'
+      ? species.familyHe
+      : species.familyLatin
+        ? `${species.familyLatin.charAt(0)}${species.familyLatin.slice(1).toLowerCase()}`
+        : undefined;
 
   return (
     <Pressable onPress={onPress}>
@@ -91,6 +97,11 @@ function SpeciesCard({
         <Text style={[styles.name, { color: colors.text }]}>{localName}</Text>
         {species.scientificName && (
           <Text style={{ color: colors.textMuted, fontStyle: 'italic' }}>{species.scientificName}</Text>
+        )}
+        {familyLabel && (
+          <Text style={{ color: colors.textMuted, marginTop: spacing.xs }}>
+            {t('species.family')}: {familyLabel}
+          </Text>
         )}
         {habitat && <Text style={{ color: colors.textSecondary, marginTop: spacing.xs }}>{habitat}</Text>}
         {species.conservationStatus === 'vulnerable' && (

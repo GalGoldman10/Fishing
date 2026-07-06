@@ -1,7 +1,7 @@
 import { isMockMode } from '@/lib/config/env';
 import { DEMO_SPOTS, DEMO_SPECIES, DEMO_CONDITIONS, getDemoSpotDetails, getDemoSpeciesDetails } from '@/lib/mock/demoData';
 import { getSpeciesProfile } from '@/lib/mock/speciesProfiles';
-import { resolveSpeciesGuideId } from '@/lib/mock/mediterraneanFishGuide';
+import { resolveUnifiedSpeciesId } from '@/lib/mock/speciesCatalog';
 import { supabase } from '@/lib/api/supabase';
 import {
   FishingSpotSummary,
@@ -118,7 +118,7 @@ export async function searchSpecies(query?: string): Promise<SpeciesSummary[]> {
 }
 
 export async function getSpeciesById(id: string): Promise<SpeciesDetails | null> {
-  if (isMockMode()) return getDemoSpeciesDetails(id) ?? getDemoSpeciesDetails(resolveSpeciesGuideId(id));
+  if (isMockMode()) return getDemoSpeciesDetails(id) ?? getDemoSpeciesDetails(resolveUnifiedSpeciesId(id));
 
   const { data, error } = await supabase.from('species').select('*').eq('id', id).single();
   if (error) return null;

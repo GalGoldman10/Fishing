@@ -94,6 +94,8 @@ export interface SpeciesSummary {
   scientificName?: string;
   localizedNames?: LocalizedNames;
   habitat?: string;
+  familyHe?: string;
+  familyLatin?: string;
   environmentTypes: string[];
   conservationStatus?: string;
 }
@@ -116,6 +118,9 @@ export interface SpeciesDetails extends SpeciesSummary {
     diet?: { en: string; he: string };
     sizeSeason?: { en: string; he: string };
     cookingMethods?: { en: string; he: string };
+    reproduction?: { en: string; he: string };
+    familyHe?: string;
+    familyLatin?: string;
     aliases?: string[];
     sourceUrl?: string;
     infoStatus?: string;

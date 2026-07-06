@@ -111,6 +111,8 @@ describe('database content localization', () => {
       expect(profile.description.he.length).toBeGreaterThan(0);
       expect(profile.habitat.en.length).toBeGreaterThan(0);
       expect(profile.habitat.he.length).toBeGreaterThan(0);
+      expect(profile.reproduction.en.length).toBeGreaterThan(0);
+      expect(profile.reproduction.he.length).toBeGreaterThan(0);
     }
   });
 

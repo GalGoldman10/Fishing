@@ -1,7 +1,7 @@
 import { FishingSpotDetails, FishingSpotSummary, SpeciesDetails, SpeciesSummary, MarineConditions } from '@/types/fishing';
 import { getBeachProfile } from '@/lib/mock/beachProfiles';
 import { getSpeciesProfile } from '@/lib/mock/speciesProfiles';
-import { MEDITERRANEAN_FISH_GUIDE, resolveSpeciesGuideId } from '@/lib/mock/mediterraneanFishGuide';
+import { DEMO_SPECIES, resolveUnifiedSpeciesId } from '@/lib/mock/speciesCatalog';
 
 // Coordinates were audited on 2026-07-03: several pins previously used
 // city-center positions instead of the actual shoreline fishing access point.
@@ -174,25 +174,7 @@ export const DEMO_SPOTS: FishingSpotSummary[] = [
   },
 ];
 
-export const DEMO_SPECIES: SpeciesSummary[] = MEDITERRANEAN_FISH_GUIDE.map((entry) => ({
-  id: entry.id,
-  commonName: entry.englishName,
-  localizedNames: { en: entry.englishName, he: entry.hebrewName },
-  habitat: entry.habitat.he,
-  environmentTypes: inferEnvironmentTypes(entry.habitat.he),
-  conservationStatus: /לוקוס|דקר|מוגן/i.test(`${entry.hebrewName} ${entry.description.he}`) ? 'vulnerable' : 'least_concern',
-}));
-
-function inferEnvironmentTypes(habitatHe: string): SpeciesSummary['environmentTypes'] {
-  const types = new Set<SpeciesSummary['environmentTypes'][number]>();
-  if (/נמל|מזח|רציף|שובר/i.test(habitatHe)) types.add('pier');
-  if (/סלע|שונית|צוק/i.test(habitatHe)) types.add('rocks');
-  if (/סירה|עומק|פתוח|פלגי|ים פתוח/i.test(habitatHe)) types.add('boat');
-  if (/נמל|מעגן/i.test(habitatHe)) types.add('harbor');
-  if (types.size === 0) types.add('shore');
-  else types.add('shore');
-  return [...types];
-}
+export { DEMO_SPECIES };
 
 export const DEMO_CONDITIONS: MarineConditions = {
   weather: 'Partly cloudy',
@@ -221,7 +203,7 @@ export function getDemoSpotDetails(id: string): FishingSpotDetails | null {
   const profile = getBeachProfile(id);
   const speciesEntries = profile
     ? profile.speciesIds.map((entry) => {
-        const resolvedId = resolveSpeciesGuideId(entry.id);
+        const resolvedId = resolveUnifiedSpeciesId(entry.id);
         const s =
           DEMO_SPECIES.find((sp) => sp.id === entry.id) ??
           DEMO_SPECIES.find((sp) => sp.id === resolvedId);
@@ -333,7 +315,7 @@ export function getDemoSpotDetails(id: string): FishingSpotDetails | null {
 }
 
 export function getDemoSpeciesDetails(id: string): SpeciesDetails | null {
-  const resolvedId = resolveSpeciesGuideId(id);
+  const resolvedId = resolveUnifiedSpeciesId(id);
   const species =
     DEMO_SPECIES.find((s) => s.id === id) ??
     DEMO_SPECIES.find((s) => s.id === resolvedId);
@@ -360,6 +342,9 @@ export function getDemoSpeciesDetails(id: string): SpeciesDetails | null {
           diet: profile.diet,
           sizeSeason: profile.sizeSeason,
           cookingMethods: profile.cookingMethods,
+          reproduction: profile.reproduction,
+          familyHe: profile.familyHe,
+          familyLatin: profile.familyLatin,
           aliases: profile.aliases,
           sourceUrl: profile.sourceUrl,
           infoStatus: profile.infoStatus,
