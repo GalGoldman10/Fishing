@@ -38,6 +38,57 @@ describe('scopeGuard', () => {
     expect(validateFishingScope('איפה אפשר לתפוס בורי?', 'he').allowed).toBe(true);
   });
 
+  it('allows general fishing follow-ups with לדוג', () => {
+    expect(
+      validateFishingScope('באופן כללי לדוג באיזור המרכז', 'he').allowed,
+    ).toBe(true);
+  });
+
+  it('allows recommended central region beach fishing question with דיוג spelling', () => {
+    expect(
+      validateFishingScope('איזה חופים מומלץ ללכת לדיוג באזור המרכז?', 'he').allowed,
+    ).toBe(true);
+  });
+
+  it('allows Hebrew beach questions even when final-letter forms differ (חופים vs חוף)', () => {
+    expect(validateFishingScope('איפה יש חופים טובים?', 'he').allowed).toBe(true);
+  });
+
+  it('allows Hebrew questions when language param is wrong but text is Hebrew', () => {
+    expect(
+      validateFishingScope('איזה חופים מומלץ ללכת לדיוג באזור המרכז?', 'en').allowed,
+    ).toBe(true);
+  });
+
+  it('allows short location follow-ups when prior chat was about fishing', () => {
+    const prior = [
+      'איפה יש פארקי דייג באיזור המרכז?',
+      'לא נמצאו פארקי דייג ספציפיים באיזור המרכז.',
+    ];
+    expect(
+      validateFishingScope('ומה עם חיפה?', 'he', { conversationContext: prior }).allowed,
+    ).toBe(true);
+  });
+
+  it('still refuses unrelated follow-ups even with fishing context', () => {
+    const prior = ['מה הפיתיון הכי טוב לדיג חוף?'];
+    expect(
+      validateFishingScope('Who won the election?', 'en', { conversationContext: prior }).allowed,
+    ).toBe(false);
+  });
+
+  it('allows referential follow-ups when prior turns mention beaches', () => {
+    const prior = [
+      { role: 'user' as const, text: 'יש לי העדפה לפלמחים או חוף ראשון' },
+      { role: 'assistant' as const, text: 'פלמחים מתאימה לדיג סלעים.' },
+    ];
+    expect(
+      validateFishingScope('איזה חוף מבין השתיים מתאים לדייג של בורי?', 'he', {
+        conversationContext: prior.map((turn) => turn.text),
+      }).allowed,
+    ).toBe(true);
+  });
+
   it('answers where to catch mullet end-to-end', async () => {
     const result = await runFishingResearch({
       question: 'איפה אפשר לתפוס בורי?',
