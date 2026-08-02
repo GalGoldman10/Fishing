@@ -1,5 +1,10 @@
 import { searchWeb, formatWebResultsForPrompt } from './web-search.ts';
 import { runServerResearch, formatResearchForPrompt } from './research/orchestrator.ts';
+import {
+  type ChatTurn,
+  extractLocationsFromConversation,
+  normalizeChatTurns,
+} from './research/conversationContext.ts';
 import { executeTool } from './tools.ts';
 import { fishingAssistantResponseSchema, TOOL_DEFINITIONS } from './schemas.ts';
 import { SYSTEM_PROMPT, getModel } from './system-prompt.ts';
@@ -12,6 +17,7 @@ export interface RunAssistantInput {
   location?: { latitude: number; longitude: number };
   spotId?: string;
   locationHint?: string;
+  recentMessages?: ChatTurn[];
 }
 
 export interface RunAssistantOutput {
@@ -84,11 +90,14 @@ export async function runFishingAssistant(input: RunAssistantInput): Promise<Run
   const langInstruction = input.language === 'he' ? 'Hebrew' : 'English';
   const instructions = `${SYSTEM_PROMPT}\n\nRespond in ${langInstruction}. For the final answer to the user, synthesize the BEST answer from all tool results. Cite web sources in the sources array.`;
 
+  const recentMessages = normalizeChatTurns(input.recentMessages);
+
   // Multi-source research before AI loop
   const research = await runServerResearch(
     input.message,
     input.language,
     input.locationHint,
+    recentMessages,
   );
 
   if (research.refused) {
@@ -113,6 +122,19 @@ export async function runFishingAssistant(input: RunAssistantInput): Promise<Run
     formatResearchForPrompt(research),
   ];
 
+  const referencedLocations = extractLocationsFromConversation(recentMessages);
+  for (const location of referencedLocations.slice(0, 3)) {
+    if (!location.spotId) continue;
+    try {
+      const details = await executeTool('get_fishing_spot_details', { spotId: location.spotId });
+      contextBlocks.push(
+        `=== DATABASE: ${location.labelEn} / ${location.labelHe} ===\n${JSON.stringify(details)}`,
+      );
+    } catch {
+      // Spot database may be unavailable — continue with web research only.
+    }
+  }
+
   if (input.location) {
     const nearby = await executeTool('get_nearby_spots', {
       latitude: input.location.latitude,
@@ -127,12 +149,19 @@ export async function runFishingAssistant(input: RunAssistantInput): Promise<Run
     contextBlocks.push(`=== DATABASE: SPOT DETAILS ===\n${JSON.stringify(details)}`);
   }
 
-  const conversationInput: unknown[] = [
-    {
-      role: 'user',
-      content: `${input.message}\n\n--- RETRIEVED CONTEXT ---\n${contextBlocks.join('\n\n')}`,
-    },
-  ];
+  const conversationInput: unknown[] = [];
+
+  for (const turn of recentMessages.slice(-6)) {
+    conversationInput.push({
+      role: turn.role === 'user' ? 'user' : 'assistant',
+      content: turn.text,
+    });
+  }
+
+  conversationInput.push({
+    role: 'user',
+    content: `${input.message}\n\n--- RETRIEVED CONTEXT ---\n${contextBlocks.join('\n\n')}`,
+  });
 
   let lastResponse: Record<string, unknown> = {};
   let rounds = 0;

@@ -56,6 +56,10 @@ export default function ChatScreen() {
   const send = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
 
+    const recentMessages = messages.slice(-8).map((message) => ({
+      role: message.role,
+      text: message.text,
+    }));
     const userMsg: Message = { id: Date.now().toString(), role: 'user', text };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
@@ -66,6 +70,7 @@ export default function ChatScreen() {
         message: text,
         sessionId,
         language: i18n.language as 'en' | 'he',
+        recentMessages,
       });
 
       if (response.sessionId) setSessionId(response.sessionId);
@@ -99,7 +104,7 @@ export default function ChatScreen() {
       setLoading(false);
       setTimeout(() => listRef.current?.scrollToEnd(), 100);
     }
-  }, [i18n.language, loading, sessionId, t]);
+  }, [i18n.language, loading, messages, sessionId, t]);
 
   // Auto-send a question passed from the homepage hero / AI suggestion chips.
   useEffect(() => {
