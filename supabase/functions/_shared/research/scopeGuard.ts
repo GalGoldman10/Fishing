@@ -1,17 +1,22 @@
 /**
- * Refuses non-fishing questions with a polite localized message.
+ * Server-side fishing scope guard (Deno).
+ * Keep keyword/pattern lists aligned with lib/research/scopeGuard.ts.
  */
 
-import { normalizeFishingQuery } from '@/lib/research/fishingTermNormalization';
-import { normalizeHebrewFinalLetters } from '@/lib/research/fishingTermNormalization/textUtils';
-import { detectTargetSpecies } from '@/lib/research/fishingKnowledge';
+const FINAL_HEBREW_LETTERS: Record<string, string> = {
+  'ך': 'כ',
+  'ם': 'מ',
+  'ן': 'נ',
+  'ף': 'פ',
+  'ץ': 'צ',
+};
 
 function containsHebrew(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text);
 }
 
 function normalizeHebrewForScope(text: string): string {
-  return normalizeHebrewFinalLetters(text);
+  return text.replace(/[ךםןףץ]/g, (ch) => FINAL_HEBREW_LETTERS[ch] ?? ch);
 }
 
 const FISHING_KEYWORDS_EN = [
@@ -28,7 +33,7 @@ const FISHING_KEYWORDS_HE = [
   'חוף', 'חופים', 'מזח', 'נמל', 'לוכד', 'ציוד', 'גל', 'גאות', 'שפל', 'סירה', 'קיאק', 'קרס',
   'משקולת', 'פלואט', 'רישיון', 'תקנה', 'לוקוס', 'דניס', 'מושט', 'רוח', 'ים', 'אגם', 'נהר',
   'זירזור', 'זרזור', 'גרגור', 'גירגור', 'גיג', 'ג\'יג', 'ריג', 'סיליקון',
-  'בורי', 'ברבוניה', 'סרגוס', 'גומבר', 'ברקודה', 'מרמור', 'אריאן', 'אמנון',
+  'בורי', 'ברבוניה', 'סרגוס', 'גומבר', 'ברקודה', 'מרמור', 'ליציה', 'אמנון',
   'דוראדו', 'פלמידה', 'טונית', 'טרכון', 'טלוויזיה', 'חנית', 'לברק', 'אינטיאס',
   'סוגי דגים', 'מינימום', 'בסשן',
   'לתפוס', 'ללכוד', 'תפוס',
@@ -76,25 +81,9 @@ const FISHING_INTENT_PATTERNS_EN = [
   /where.*fish for/i,
   /what can i catch/i,
   /best place.*catch/i,
+  /recommended.*beach.*fish/i,
+  /best beaches.*fish/i,
 ];
-
-const BLOCKED_TOPICS_EN = [
-  /politic/i, /election/i, /celebrity/i, /movie/i, /recipe(?!.*bait)/i,
-  /cryptocurrency/i, /bitcoin/i, /stock market/i, /gambling/i,
-];
-
-function textMatchesFishingKeywords(question: string, language: 'en' | 'he'): boolean {
-  const text = question.toLowerCase();
-  const keywords = language === 'he' ? FISHING_KEYWORDS_HE : FISHING_KEYWORDS_EN;
-  const normalizedQuestion = language === 'he' ? normalizeHebrewForScope(question) : text;
-
-  return keywords.some((kw) => {
-    if (language === 'he') {
-      return normalizedQuestion.includes(normalizeHebrewForScope(kw));
-    }
-    return text.includes(kw.toLowerCase());
-  });
-}
 
 const FOLLOWUP_PATTERNS_HE = [
   /^עוד\b/,
@@ -119,27 +108,34 @@ const FOLLOWUP_PATTERNS_EN = [
   /^can you\b/i,
 ];
 
+const BLOCKED_TOPICS_EN = [
+  /politic/i, /election/i, /celebrity/i, /movie/i, /recipe(?!.*bait)/i,
+  /cryptocurrency/i, /bitcoin/i, /stock market/i, /gambling/i,
+];
+
+function textMatchesFishingKeywords(question: string, language: 'en' | 'he'): boolean {
+  const text = question.toLowerCase();
+  const keywords = language === 'he' ? FISHING_KEYWORDS_HE : FISHING_KEYWORDS_EN;
+  const normalizedQuestion = language === 'he' ? normalizeHebrewForScope(question) : text;
+
+  return keywords.some((kw) => {
+    if (language === 'he') {
+      return normalizedQuestion.includes(normalizeHebrewForScope(kw));
+    }
+    return text.includes(kw.toLowerCase());
+  });
+}
+
 function isFollowUpContinuation(question: string, language: 'en' | 'he'): boolean {
   const patterns = language === 'he' ? FOLLOWUP_PATTERNS_HE : FOLLOWUP_PATTERNS_EN;
   if (patterns.some((p) => p.test(question.trim()))) return true;
 
   const locationPatterns = [
-    /beach|חוף|marina|נמל|pier|מזח|lake|אגם|river|נהר|harbor/i,
+    /beach|beaches|חוף|חופ/i,
+    /marina|נמל|pier|מזח|lake|אגם|river|נהר|harbor/i,
     /palmachim|tel aviv|haifa|חיפה|אילת|herzliya|ashdod|ashkelon|מרכז|צפון|דרום/i,
   ];
   return question.trim().length <= 120 && locationPatterns.some((p) => p.test(question));
-}
-
-function hasFishingConversationContext(messages: string[], language: 'en' | 'he'): boolean {
-  return messages.some((message) => isFishingQuestion(message, language));
-}
-
-export function isFishingQuestion(question: string, language: 'en' | 'he'): boolean {
-  if (isFishingQuestionForLanguage(question, language)) return true;
-  if (language !== 'he' && containsHebrew(question)) {
-    return isFishingQuestionForLanguage(question, 'he');
-  }
-  return false;
 }
 
 function isFishingQuestionForLanguage(question: string, language: 'en' | 'he'): boolean {
@@ -148,18 +144,11 @@ function isFishingQuestionForLanguage(question: string, language: 'en' | 'he'): 
 
   if (textMatchesFishingKeywords(question, language)) return true;
 
-  if (detectTargetSpecies(question)) return true;
-
   const intentPatterns = language === 'he' ? FISHING_INTENT_PATTERNS_HE : FISHING_INTENT_PATTERNS_EN;
   if (intentPatterns.some((p) => p.test(question))) return true;
 
   const weatherPatterns = language === 'he' ? FISHING_WEATHER_PATTERNS_HE : FISHING_WEATHER_PATTERNS_EN;
   if (weatherPatterns.some((p) => p.test(question))) return true;
-
-  const norm = normalizeFishingQuery(question, language);
-  if (norm.matches.some((m) => m.confidence !== 'low' && m.score >= 0.72)) return true;
-
-  if (textMatchesFishingKeywords(norm.normalizedQuestion, language)) return true;
 
   const locationPatterns = [
     /beach|beaches|חוף|חופ/i,
@@ -168,6 +157,14 @@ function isFishingQuestionForLanguage(question: string, language: 'en' | 'he'): 
   ];
   if (locationPatterns.some((p) => p.test(question)) && question.length < 120) return true;
 
+  return false;
+}
+
+export function isFishingQuestion(question: string, language: 'en' | 'he'): boolean {
+  if (isFishingQuestionForLanguage(question, language)) return true;
+  if (language !== 'he' && containsHebrew(question)) {
+    return isFishingQuestionForLanguage(question, 'he');
+  }
   return false;
 }
 
@@ -181,31 +178,21 @@ export function getRefusalMessage(language: 'en' | 'he'): string {
     : 'This assistant specializes only in fishing and fishing-related information. Please ask me about a fishing location, fish species, equipment, technique, conditions, or regulations.';
 }
 
-export interface FishingScopeOptions {
-  /** Recent chat turns (user + assistant) to allow short fishing follow-ups. */
-  conversationContext?: string[];
-}
-
 export function validateFishingScope(
   question: string,
   language: 'en' | 'he',
-  options: FishingScopeOptions = {},
-): { allowed: boolean; reason?: string } {
-  if (isBlockedTopic(question)) {
-    return { allowed: false, reason: getRefusalMessage(language) };
-  }
-  if (isFishingQuestion(question, language)) {
-    return { allowed: true };
-  }
+  conversationContext: string[] = [],
+): boolean {
+  if (isBlockedTopic(question)) return false;
+  if (isFishingQuestion(question, language)) return true;
 
-  const context = options.conversationContext ?? [];
   if (
-    context.length > 0 &&
-    hasFishingConversationContext(context, language) &&
+    conversationContext.length > 0 &&
+    conversationContext.some((message) => isFishingQuestion(message, language)) &&
     isFollowUpContinuation(question, language)
   ) {
-    return { allowed: true };
+    return true;
   }
 
-  return { allowed: false, reason: getRefusalMessage(language) };
+  return false;
 }

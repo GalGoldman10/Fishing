@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { checkRateLimit, getServiceClient } from '../_shared/tools.ts';
 import { runFishingAssistant } from '../_shared/assistant-runner.ts';
 import { runSimpleOpenAIChat } from '../_shared/simple-openai.ts';
+import { normalizeChatTurns } from '../_shared/research/conversationContext.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
   let language = 'en';
   try {
     const body = await req.json();
-    const { message, sessionId, location, spotId, locationHint } = body;
+    const { message, sessionId, location, spotId, locationHint, recentMessages } = body;
     language = body.language ?? 'en';
 
     if (!message || message.length > 4000) {
@@ -115,6 +116,7 @@ Deno.serve(async (req) => {
         location,
         spotId,
         locationHint,
+        recentMessages: normalizeChatTurns(recentMessages).slice(-8),
       });
     } catch (assistantErr) {
       console.warn('Full assistant failed, trying simple ChatGPT:', assistantErr);
