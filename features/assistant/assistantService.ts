@@ -3,9 +3,12 @@ import { supabase } from '@/lib/api/supabase';
 import { FishingAssistantResponse } from '@/lib/validation/schemas';
 import { performFishingResearch } from '@/features/assistant/researchService';
 import { tryAnswerSpotSiteQuestion } from '@/lib/research/spotSiteAnswer';
+import type { ChatTurn } from '@/lib/research/conversationContext';
 import i18n from '@/lib/localization/i18n';
 import { formatDateTime } from '@/lib/localization/format';
 import type { FishingAnswer } from '@/types/research';
+
+export type { ChatTurn } from '@/lib/research/conversationContext';
 
 export interface ChatRequest {
   message: string;
@@ -14,6 +17,7 @@ export interface ChatRequest {
   location?: { latitude: number; longitude: number };
   spotId?: string;
   locationHint?: string;
+  recentMessages?: ChatTurn[];
 }
 
 export interface ChatResponse {
@@ -139,6 +143,7 @@ async function getResearchEnhancedResponse(request: ChatRequest): Promise<ChatRe
     location: request.location,
     locationHint,
     spotId: request.spotId,
+    conversationContext: request.recentMessages,
   });
 
   if (researchAnswer.refused) {
